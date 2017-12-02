@@ -1,2 +1,4 @@
-# HTLAB.NET_Arduino_DRSSTC_Interrupter
+# HTLAB.NET Arduino DRSSTC Interrupter
+
 https://htlab.net/electronics/
+
