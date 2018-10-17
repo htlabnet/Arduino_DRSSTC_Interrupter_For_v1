@@ -1,0 +1,130 @@
+\documentclass[a4paper,11pt]{jsarticle}
+\usepackage[a4paper]{geometry}
+\usepackage{multirow}
+
+\newcommand{\showVer}{Ver 1.0}
+\newcommand{\midTrue}{○}
+\newcommand{\midFalse}{×}
+
+\begin{document}
+\begin{titlepage}
+\title{HTLAB.NET Arduino DRSSTC Interrupter \\\showVer}
+\author{\vspace*{80mm}\ \\つくば科学株式会社\\菊地 秀人}
+\date{\vspace*{20mm}\ \\2017年12月03日}
+\maketitle
+\thispagestyle{empty}
+\end{titlepage}
+\clearpage
+
+\section{イントロダクション}
+この文書では、「HTLAB.NET Arduino DRSSTC Interrupter」の使い方について解説します。\\
+プログラムのビルド内容によって操作方法が変わるため、プログラム内容の解説から始めます。
+
+
+
+
+\section{プログラムの基本構造}
+\subsection{要求するハードウェア}
+このプログラムは以下のボードで動作します。\\
+搭載マイコンの種類によって、出力数の違い、USB-MIDI対応などが異なります。
+
+\begin{table}[htbp]
+\begin{center}
+\begin{tabular}{ | c | c | c | c | }
+\hline
+\textbf{ボード名} & \textbf{搭載マイコン} & \textbf{出力数} & \textbf{USB-MIDI対応} \\\hline
+\textbf{Arduino Uno R3} & ATmega328P & 1 & 外部ファームウェアMoco適用で可能\\\hline
+\textbf{Arduino Leonardo} & ATmega32u4 & 2 & 対応 \\\hline
+\textbf{Arduino Micro} & ATmega32u4 & 2 & 対応 \\\hline
+\end{tabular}
+\end{center}
+\end{table}
+
+\subsection{要求するソフトウェア}
+Arduino IDE 1.8.1 以降
+https://www.arduino.cc/en/Main/Software
+
+Arduino MIDI Library 4.3.1 以降
+https://playground.arduino.cc/Main/MIDILibrary
+
+MIDIUSB library 1.0.3 以降
+https://www.arduino.cc/en/Reference/MIDIUSB
+
+
+
+\subsection{ファイル構成}
+
+\begin{table}[htbp]
+\begin{center}
+\begin{tabular}{ | c | c | }
+\hline
+\textbf{ファイル名} & \textbf{ファイル内容} \\\hline
+\textbf{HTLAB.NET\_Arduino\_DRSSTC\_Interrupter.ino} & Arduinoメインプログラム \\\hline
+\textbf{lib\_midi.h} & MIDI関係定義ヘッダファイル \\\hline
+\textbf{lib\_osc.cpp} & 発振器操作に関するプログラム \\\hline
+\textbf{lib\_osc.h} & 発振器操作に関するヘッダファイル \\\hline
+\textbf{lib\_output.cpp} & ピン出力に関するプログラム \\\hline
+\textbf{lib\_output.h} & ピン出力に関するヘッダファイル \\\hline
+\textbf{settings.h} & 設定定義ヘッダファイル \\\hline
+\end{tabular}
+\end{center}
+\end{table}
+
+
+
+
+
+\clearpage
+\newgeometry{top=1truecm, bottom=1truecm, left=1truecm, right=1truecm}
+
+\begin{center}
+\huge{MIDIインプリメンテーションチャート}
+\end{center}
+
+\begin{flushright}
+\small{HTLAB.NET Arduino DRSSTC Interrupter \showVer}
+\end{flushright}
+
+\begin{table}[htbp]
+\begin{center}
+\begin{tabular}{ | p{2cm} p{2cm} | p{4cm} | p{4cm} | p{4cm} | }
+\hline
+\multicolumn{2}{|c|}{\textbf{\large ファンクション}} & 
+\multicolumn{1}{c|}{\textbf{\large 送信}} & 
+\multicolumn{1}{c|}{\textbf{\large 受信}} & 
+\multicolumn{1}{c|}{\textbf{\large 備考}} \\\hline
+
+
+\textbf{ベーシック} & \multicolumn{1}{r|}{電源ON時} & \midFalse & 1-2 & チャンネル変更不可 \\
+\textbf{チャンネル} & \multicolumn{1}{r|}{設定可能} & \midFalse & \midFalse & \\\hline
+
+ & \multicolumn{1}{r|}{電源ON時} & \midFalse & モード3 & \\
+\textbf{モード} & \multicolumn{1}{r|}{メッセージ} & \midFalse & \midFalse & \\
+ & \multicolumn{1}{r|}{代用} & \midFalse & \midFalse & \\\hline
+
+\textbf{ノート} & & \midFalse & 0-127 & 制限可能 \\
+\textbf{ナンバー} & \multicolumn{1}{r|}{：音域} & \midFalse & 0-127 & タイマ8分周時下限24 \\\hline
+
+\multirow{2}{*}{\textbf{ベロシティ}} & \multicolumn{1}{r|}{ノート・オン} & \midFalse & 0-127 & 使用設定による \\
+ & \multicolumn{1}{r|}{ノート・オフ} & \midFalse & \midFalse &  \\\hline
+
+\textbf{アフター} & \multicolumn{1}{r|}{キー別} & \midFalse & \midFalse & \\
+\textbf{タッチ} & \multicolumn{1}{r|}{チャンネル別} & \midFalse & \midFalse & \\\hline
+
+\textbf{ピッチベンド} & & \midFalse & \midFalse & \\\hline
+
+
+
+
+\end{tabular}
+\end{center}
+\end{table}
+\thispagestyle{empty}
+\restoregeometry
+
+
+
+
+\end{document}
+
+
