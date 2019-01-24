@@ -15,17 +15,16 @@
 
 //
 // ########## Compatible Boards ##########
-//    - Arduino Uno Rev3 (USB-MIDI is available using MOCO)
 //    - Arduino Leonardo (USB-MIDI is available)
 //    - Arduino Micro (USB-MIDI is available)
 //
 
 //
 // ########## Pin Assignments ##########
-//  D8  - OUT1 (MIDI CH:1)
-//  D9  - OUT2 (MIDI CH:2)
-//  D10 - (Reserve:OUT3)
-//  D11 - (Reserve:OUT4)
+//  D10 - OUT1 (MIDI CH:1)
+//  D11 - OUT2 (MIDI CH:2)
+//  D12 - (Reserve:OUT3)
+//  D13 - (Reserve:OUT4)
 //
 
 //
@@ -61,8 +60,7 @@
 #endif
 
 // Use MIDIUSB Library (for Arduino Leonardo, Micro)
-#if defined(USE_MIDIUSB) && defined(USBCON) && \
-    (defined(ARDUINO_AVR_LEONARDO) || defined(ARDUINO_AVR_MICRO))
+#if USE_MIDIUSB && defined(USBCON) && defined(__AVR_ATmega32U4__)
   #include <midi_UsbTransport.h>
   static const unsigned sUsbTransportBufferSize = 16;
   typedef midi::UsbTransport<sUsbTransportBufferSize> UsbTransport;
@@ -92,9 +90,9 @@ void setup() {
   output_init();
   
   // For Debug
-  #ifdef DEBUG_SERIAL
+  #if DEBUG_SERIAL
     Serial.begin(115200);
-    #ifdef DEBUG_SERIAL_WAIT
+    #if DEBUG_SERIAL_WAIT
       while (!Serial);
       Serial.println("[INFO] Arduino Start");
     #endif
@@ -107,13 +105,13 @@ void setup() {
   MIDI.setHandleActiveSensing(isr_midi_activesensing);
   MIDI.setHandleSystemReset(isr_midi_systemreset);
   MIDI.begin(MIDI_CHANNEL_OMNI);
-  #ifdef DEBUG_SERIAL
+  #if DEBUG_SERIAL
     Serial.println("[INFO] MIDI Library Load Complete");
   #endif
   
   // Oscillator Tasks
   osc_timer_init();
-  #ifdef DEBUG_SERIAL
+  #if DEBUG_SERIAL
     Serial.println("[INFO] Oscillator Tasks Complete");
   #endif
   
@@ -172,7 +170,7 @@ void isr_midi_noteon(byte ch, byte num, byte vel) {
   }
   
   // For Debug
-  #ifdef DEBUG_SERIAL
+  #if DEBUG_SERIAL
     Serial.print("[MIDI] Note On - CH:");
     Serial.print(ch);
     Serial.print(" NUM:");
@@ -196,7 +194,7 @@ void isr_midi_noteoff(byte ch, byte num, byte vel) {
   }
 
   // For Debug
-  #ifdef DEBUG_SERIAL
+  #if DEBUG_SERIAL
     Serial.print("[MIDI] NoteOff - CH:");
     Serial.print(ch);
     Serial.print(" NUM:");
@@ -237,7 +235,7 @@ void isr_midi_controlchange(byte ch, byte num, byte val) {
   }
   
   // For Debug
-  #ifdef DEBUG_SERIAL
+  #if DEBUG_SERIAL
     Serial.print("[MIDI] CC - CH:");
     Serial.print(ch);
     Serial.print(" NUM:");
@@ -252,7 +250,7 @@ void isr_midi_activesensing() {
 
 
   // For Debug
-  #ifdef DEBUG_SERIAL
+  #if DEBUG_SERIAL
     Serial.println("[MIDI] Active Sensing");
   #endif
 }
@@ -269,11 +267,7 @@ void isr_midi_systemreset() {
   osc_mono_midi_expression[0] = 127;
   
   // For Debug
-  #ifdef DEBUG_SERIAL
+  #if DEBUG_SERIAL
     Serial.println("[MIDI] System Reset");
   #endif
 }
-
-
-
-

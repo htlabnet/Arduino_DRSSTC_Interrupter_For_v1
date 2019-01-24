@@ -4,7 +4,7 @@
 // ########## Interrupter Settings ##########
 
 // Use MIDIUSB Library
-#define USE_MIDIUSB
+#define USE_MIDIUSB true
 
 // Use MIDI Volume (CC#7 & CC#11 & Velocity)
 #define USE_MIDI_VOLUME false
@@ -27,11 +27,9 @@
 #define OSC_TIMER_DIVIDER 8
 
 // For Debug (Arduino Leonardo, Micro)
-//#define DEBUG_SERIAL
+#define DEBUG_SERIAL false
 
 // Wait for Serial Port
-//#define DEBUG_SERIAL_WAIT
+#define DEBUG_SERIAL_WAIT false
 
 #endif
-
-
