@@ -54,9 +54,17 @@
 #define OSC_TIMER_DIVIDER 8
 
 // For Debug
-#define DEBUG_SERIAL false
+#define DEBUG_SERIAL true
 
 // Wait for Serial Port
 #define DEBUG_SERIAL_WAIT false
+
+// Mode
+#define MODE_OSC 1
+#define MODE_OSC_OS 2
+#define MODE_OSC_HP 4
+#define MODE_OSC_HP_OS 8
+#define MODE_BURST 16
+#define MODE_MIDI 32
 
 #endif

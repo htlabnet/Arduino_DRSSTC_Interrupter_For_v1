@@ -10,6 +10,8 @@ volatile unsigned int adc_vr_3_inv = 1023 - DEFAULT_VR3;
 volatile unsigned int adc_vr_4_inv = 1023 - DEFAULT_VR4;
 volatile boolean gpio_sw_1 = DEFAULT_SW1;
 volatile boolean gpio_sw_2 = DEFAULT_SW2;
+volatile boolean gpio_push_1;
+volatile boolean gpio_push_2;
 
 void input_init() {
   #if USE_VR1
@@ -91,6 +93,20 @@ void input_task() {
       gpio_sw_2 = !digitalRead(A5);
     #endif
   #endif
+  #if USE_PUSH1
+    #if !INVERT_PUSH1
+      gpio_push_1 = digitalRead(2);
+    #else
+      gpio_push_1 = !digitalRead(2);
+    #endif
+  #endif
+  #if USE_PUSH2
+    #if !INVERT_PUSH2
+      gpio_push_2 = digitalRead(3);
+    #else
+      gpio_push_2 = !digitalRead(3);
+    #endif
+  #endif
 }
 
 
@@ -98,27 +114,28 @@ byte menu_select() {
 
   // OSC Mode
   if (gpio_sw_1 && gpio_sw_2) {
+    // Volume Mode Select
     switch (adc_vr_4 >> 8) {
       case 0:
-        return 0;
+        return MODE_OSC;
       case 1:
-        return 0;
+        return MODE_OSC_OS;
       case 2:
-        return 0;
+        return MODE_OSC_HP;
       case 3:
-        return 0;
+        return MODE_OSC_HP_OS;
     }
   }
   // Burst OSC Mode
   if (gpio_sw_1 && !gpio_sw_2) {
-    return 16;
+    return MODE_BURST;
   }
   // MIDI Mode
   if (!gpio_sw_1 && gpio_sw_2) {
-    return 32;
+    return MODE_MIDI;
   }
   // MIDI Mode
   if (!gpio_sw_1 && !gpio_sw_2) {
-    return 32;
+    return MODE_MIDI;
   }
 }

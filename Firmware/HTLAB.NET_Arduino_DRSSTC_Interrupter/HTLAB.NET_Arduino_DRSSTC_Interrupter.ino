@@ -2,7 +2,7 @@
 // #################################################
 //
 //    HTLAB.NET Arduino DRSSTC Interrupter
-//      http://htlab.net/electronics/
+//      https://htlab.net/electronics/teslacoil/
 //
 //    Copyright (C) 2017
 //      Hideto Kikuchi / PJ (@pcjpnet) - http://pc-jp.net/
@@ -88,21 +88,25 @@ LiquidCrystal lcd(4, 5, 6, 7, 8, 9);
 
 
 // Global Variables
-volatile byte int_mode = 0;
-volatile byte menu_read = 0;
+volatile byte int_mode = MODE_OSC;
+volatile byte menu_read = MODE_OSC;
 char lcd_line1[17];
 char lcd_line2[17];
 
 // OSC Mode Variables
 volatile unsigned int osc_fq = 5;
 volatile unsigned int osc_us = 1;
-volatile unsigned int osc_per = 25000;
-volatile unsigned int osc_per_read = 25000;
+volatile unsigned int osc_per = 49999;
+volatile unsigned int osc_per_read = 49999;
+
+// One Shot Mode Variables
+volatile unsigned int oneshot_ch1_ontime = 0;
+volatile unsigned int oneshot_ch2_ontime = 0;
 
 // Burst OSC Mode Variables
 volatile boolean burst_phase = false;
 volatile unsigned int burst_ontime = 10;
-volatile unsigned int burst_offtime = 10; 
+volatile unsigned int burst_offtime = 510; 
 volatile unsigned int burst_ontime_count = 0;
 volatile unsigned int burst_offtime_count = 0; 
 
@@ -179,23 +183,44 @@ void loop() {
   // OSC Tasks
   switch (int_mode) {
     // OSC Mode
-    case 0:
+    case MODE_OSC:
       osc_fq = adc_vr_1 + 5;
       osc_us = (adc_vr_2 >> 2) + 1;
-      osc_per_read = 250000 / osc_fq;
+      osc_per_read = (250000 / osc_fq) - 1;
       if (osc_per != osc_per_read) {
         osc_per = osc_per_read;
         OCR1A = osc_per;
         OCR3A = osc_per;
       }
       break;
+    // One Shot Mode
+    case MODE_OSC_OS:
+      oneshot_ch1_ontime = (adc_vr_1 >> 1) + 1;
+      oneshot_ch2_ontime = (adc_vr_2 >> 1) + 1;
+      break;
+    // High Power OSC Mode
+    case MODE_OSC_HP:
+      osc_fq = (adc_vr_1 >> 5) + 5;
+      osc_us = (adc_vr_2 >> 3) * 100;
+      osc_per_read = (250000 / osc_fq) - 1;
+      if (osc_per != osc_per_read) {
+        osc_per = osc_per_read;
+        OCR1A = osc_per;
+        OCR3A = osc_per;
+      }
+      break;
+    // High Power One Shot Mode
+    case MODE_OSC_HP_OS:
+      oneshot_ch1_ontime = ((adc_vr_1 >> 3) + 1) * 100;
+      oneshot_ch2_ontime = ((adc_vr_2 >> 3) + 1) * 100;
+      break;
     // Burst OSC Mode
-    case 16:
-      burst_ontime = (adc_vr_3 >> 1) + 10;
-      burst_offtime = (adc_vr_4_inv >> 1) + 10;
+    case MODE_BURST:
+      burst_offtime = (adc_vr_3_inv >> 1) + 10;
+      burst_ontime = (adc_vr_4 >> 1) + 10;
       osc_fq = adc_vr_1 + 5;
       osc_us = (adc_vr_2 >> 2) + 1;
-      osc_per_read = 250000 / osc_fq;
+      osc_per_read = (250000 / osc_fq) - 1;
       if (osc_per != osc_per_read) {
         osc_per = osc_per_read;
         OCR1A = osc_per;
@@ -209,21 +234,70 @@ void loop() {
   // LCD
   show_lcd(int_mode);
 
+Serial.println(gpio_push_1);
+
 }
 
 
 // MODE Init
 void mode_init(byte mode) {
+  detachInterrupt(1);
+  detachInterrupt(0);
   switch (mode) {
     // OSC Mode
-    case 0:
+    case MODE_OSC:
       osc_timer_disable(0);
       osc_timer_disable(1);
       osc_timer_init_64();
       osc_timer_enable(0, osc_per);
       break;
+    // One Shot Mode
+    case MODE_OSC_OS:
+      osc_timer_disable(0);
+      osc_timer_disable(1);
+      #if USE_PUSH1
+        #if !INVERT_PUSH1
+          attachInterrupt(1, isr_sw1, FALLING);
+        #else
+          attachInterrupt(1, isr_sw1, RISING);
+        #endif
+      #endif
+      #if USE_PUSH2
+        #if !INVERT_PUSH2
+          attachInterrupt(0, isr_sw2, FALLING);
+        #else
+          attachInterrupt(0, isr_sw2, RISING);
+        #endif
+      #endif
+      break;
+    // OSC High Power Mode
+    case MODE_OSC_HP:
+      osc_timer_disable(0);
+      osc_timer_disable(1);
+      osc_timer_init_64();
+      osc_timer_enable(0, osc_per);
+      break;
+    // High Power One Shot Mode
+    case MODE_OSC_HP_OS:
+      osc_timer_disable(0);
+      osc_timer_disable(1);
+      #if USE_PUSH1
+        #if !INVERT_PUSH1
+          attachInterrupt(1, isr_sw1, FALLING);
+        #else
+          attachInterrupt(1, isr_sw1, RISING);
+        #endif
+      #endif
+      #if USE_PUSH2
+        #if !INVERT_PUSH2
+          attachInterrupt(0, isr_sw2, FALLING);
+        #else
+          attachInterrupt(0, isr_sw2, RISING);
+        #endif
+      #endif
+      break;
     // Burst OSC Mode
-    case 16:
+    case MODE_BURST:
       osc_timer_disable(0);
       osc_timer_disable(1);
       osc_timer_init_64();
@@ -231,7 +305,7 @@ void mode_init(byte mode) {
       osc_timer_enable(1, 249);
       break;
     // MIDI Mode
-    case 32:
+    case MODE_MIDI:
       osc_timer_disable(0);
       osc_timer_disable(1);
       osc_timer_init();
@@ -247,19 +321,37 @@ void mode_init(byte mode) {
 void show_lcd(byte mode) {
   switch (mode) {
     // OSC Mode
-    case 0:
-      sprintf(lcd_line1, "OSC:%4uHz/%3uus", osc_fq, osc_us);
-      sprintf(lcd_line2, "OSC MODE        ");
+    case MODE_OSC:
+      sprintf(lcd_line1, "INTERRUPTER MODE");
+      sprintf(lcd_line2, "OSC:%4uHz/%3uus", osc_fq, osc_us);
+      break;
+
+    // One Shot Mode
+    case MODE_OSC_OS:
+      sprintf(lcd_line1, "ONE SHOT MODE   ");
+      sprintf(lcd_line2, "1:%3uus 2:%3uus ", oneshot_ch1_ontime, oneshot_ch2_ontime);
+      break;
+
+    // High Power OSC Mode
+    case MODE_OSC_HP:
+      sprintf(lcd_line1, "HIGH POWER MODE ");
+      sprintf(lcd_line2, "OSC:%2uHz/%5uus", osc_fq, osc_us);
+      break;
+
+    // High Power One Shot Mode
+    case MODE_OSC_HP_OS:
+      sprintf(lcd_line1, "HIGH POW ONESHOT");
+      sprintf(lcd_line2, "1:%5uu2:%5uu", oneshot_ch1_ontime, oneshot_ch2_ontime);
       break;
 
     // Burst OSC Mode
-    case 16:
-      sprintf(lcd_line1, "OSC:%4uHz/%3uus", osc_fq, osc_us);
-      sprintf(lcd_line2, "BURST%3ums/%3ums", burst_ontime, burst_offtime);
+    case MODE_BURST:
+      sprintf(lcd_line1, "BURST%3ums/%3ums", burst_offtime, burst_ontime);
+      sprintf(lcd_line2, "OSC:%4uHz/%3uus", osc_fq, osc_us);
       break;
 
     // MIDI Mode
-    case 32:
+    case MODE_MIDI:
       sprintf(lcd_line1, "MIDI MODE       ");
       sprintf(lcd_line2, "                ");
       break;
@@ -271,21 +363,49 @@ void show_lcd(byte mode) {
 }
 
 
+void isr_sw1() {
+  output_single_pulse(0, oneshot_ch1_ontime);
+  detachInterrupt(1);
+  delayMicroseconds(16000);
+  #if !INVERT_PUSH1
+    attachInterrupt(1, isr_sw1, FALLING);
+  #else
+    attachInterrupt(1, isr_sw1, RISING);
+  #endif
+}
+
+
+void isr_sw2() {
+  output_single_pulse(1, oneshot_ch2_ontime);
+  detachInterrupt(0);
+  delayMicroseconds(16000);
+  #if !INVERT_PUSH1
+    attachInterrupt(0, isr_sw2, FALLING);
+  #else
+    attachInterrupt(0, isr_sw2, RISING);
+  #endif
+}
+
+
 // Interrupt Tasks
 ISR (TIMER1_COMPA_vect) {
   switch (int_mode) {
     // OSC Mode Main Timer
-    case 0:
+    case MODE_OSC:
+      output_dual_pulse(osc_us);
+      break;
+    // High Power OSC Mode
+    case MODE_OSC_HP:
       output_dual_pulse(osc_us);
       break;
     // Burst OSC Mode
-    case 16:
+    case MODE_BURST:
       if (burst_phase) {
         output_dual_pulse(osc_us);
       }
       break;
     // MIDI Mode
-    case 32:
+    case MODE_MIDI:
       output_single_pulse(0, osc_mono_ontime_us[0]);
       break;
   }
@@ -296,11 +416,13 @@ ISR (TIMER1_COMPA_vect) {
 ISR (TIMER3_COMPA_vect) {
   switch (int_mode) {
     // OSC Mode
-    case 0:
-      //output_single_pulse(1, osc_us);
+    case MODE_OSC:
+      break;
+    // High Power OSC Mode
+    case MODE_OSC_HP:
       break;
     // Burst OSC Mode
-    case 16:
+    case MODE_BURST:
       if (burst_phase) {
         if (burst_ontime_count >= burst_ontime) {
           burst_ontime_count = 0;
@@ -317,7 +439,7 @@ ISR (TIMER3_COMPA_vect) {
         }
       }
     // MIDI Mode
-    case 32:
+    case MODE_MIDI:
       output_single_pulse(1, osc_mono_ontime_us[1]);
       break;
   }

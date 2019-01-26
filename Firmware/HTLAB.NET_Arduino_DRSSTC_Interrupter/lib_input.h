@@ -15,6 +15,8 @@ extern volatile unsigned int adc_vr_3_inv;
 extern volatile unsigned int adc_vr_4_inv;
 extern volatile boolean gpio_sw_1;
 extern volatile boolean gpio_sw_2;
+extern volatile boolean gpio_push_1;
+extern volatile boolean gpio_push_2;
 
 void input_init();
 void input_task();
