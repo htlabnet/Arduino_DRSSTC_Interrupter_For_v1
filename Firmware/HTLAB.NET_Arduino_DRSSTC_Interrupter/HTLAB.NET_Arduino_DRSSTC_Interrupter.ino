@@ -21,10 +21,24 @@
 
 //
 // ########## Pin Assignments ##########
+//  D2  - PUSH1
+//  D3  - PUSH2
+//  D4  - LCD(RS)
+//  D5  - LCD(ENA)
+//  D6  - LCD(DB4)
+//  D7  - LCD(DB5)
+//  D8  - LCD(DB6)
+//  D9  - LCD(DB7)
 //  D10 - OUT1 (MIDI CH:1)
 //  D11 - OUT2 (MIDI CH:2)
 //  D12 - (Reserve:OUT3)
 //  D13 - (Reserve:OUT4)
+//  A0  - VR1
+//  A1  - VR2
+//  A2  - VR3
+//  A3  - VR4
+//  A4  - SW1
+//  A5  - SW2
 //
 
 //
@@ -39,11 +53,15 @@
 //
 //
 
+// LCD
+#include <LiquidCrystal.h>
+LiquidCrystal lcd(4, 5, 6, 7, 8, 9);
 
 // Settings
 #include "settings.h"
 
 // Pin I/O
+#include "lib_input.h"
 #include "lib_output.h"
 
 // Oscillator
@@ -72,6 +90,18 @@
 
 
 // Global Variables
+volatile byte int_mode = 0;
+volatile byte menu_read = 0;
+char lcd_line1[17];
+char lcd_line2[17];
+
+// OSC Mode Variables
+volatile unsigned int osc_fq = 5;
+volatile unsigned int osc_us = 1;
+volatile unsigned int osc_per = 25000;
+volatile unsigned int osc_per_read = 25000;
+
+// MIDI Mode Variables
 volatile boolean use_midi_volume = USE_MIDI_VOLUME;
 //volatile boolean osc_mode_omni = OSC_MODE_OMNI;
 volatile boolean osc_mode_fixed = OSC_MODE_FIXED;
@@ -87,8 +117,17 @@ volatile unsigned long osc_mono_fixed_ontime_max_us[2] = {OSC_FIXED_ONTIME_US_1,
 void setup() {
   
   // Pin Init
+  input_init();
   output_init();
-  
+
+  // LCD
+  lcd.begin(16,2);
+  lcd.setCursor(0,0);
+  lcd.print("HTLAB.NET DRSSTC");
+  lcd.setCursor(0,1);
+  lcd.print("Interrupter v1.0");
+  delay(1000);
+
   // For Debug
   #if DEBUG_SERIAL
     Serial.begin(115200);
@@ -114,29 +153,128 @@ void setup() {
   #if DEBUG_SERIAL
     Serial.println("[INFO] Oscillator Tasks Complete");
   #endif
+
+  mode_init(menu_read);
   
 }
 
 
 // Arduino Main Loop
 void loop() {
+
+  // Input Tasks
+  input_task();
+  menu_read = menu_select();
+  if (int_mode != menu_read) {
+    mode_init(menu_read);
+    int_mode = menu_read;
+  }
+
+  // OSC Tasks
+  switch (int_mode) {
+    case 0:
+      osc_fq = adc_vr_1 + 5;
+      osc_us = (adc_vr_2 >> 2) + 1;
+      osc_per_read = 250000 / osc_fq;
+      if (osc_per != osc_per_read) {
+        osc_per = osc_per_read;
+        OCR1A = osc_per;
+        OCR3A = osc_per;
+      }
+      break;
+    
+  }
+
+
+
+  
+  //Serial.println(adc_vr_4 >> 8); //0-3
+  //Serial.println(gpio_sw_1);
   
   // MIDI Tasks
   MIDI.read();
   
+  // LCD
+  show_lcd(int_mode);
   
+}
+
+
+// MODE Init
+void mode_init(byte mode) {
+  switch (mode) {
+    // OSC Mode
+    case 0:
+      osc_timer_disable(0);
+      osc_timer_disable(1);
+      osc_timer_init_64();
+      osc_timer_enable(0, osc_per);
+      osc_timer_enable(1, osc_per);
+      break;
+    // MIDI Mode
+    case 32:
+      osc_timer_disable(0);
+      osc_timer_disable(1);
+      osc_timer_init();
+  }
+  #if DEBUG_SERIAL
+    Serial.print("[INFO] Change Mode : ");
+    Serial.println(mode);
+  #endif
+}
+
+
+// SHOW LCD
+void show_lcd(byte mode) {
+  switch (mode) {
+    // OSC Mode
+    case 0:
+      sprintf(lcd_line1, "OSC:%4uHz/%3uus", osc_fq, osc_us);
+      sprintf(lcd_line2, "OSC MODE        ");
+      break;
+
+    // Burst OSC Mode
+    case 16:
+      sprintf(lcd_line1, "OSC:%4uHz/%3uus", osc_fq, osc_us);
+      sprintf(lcd_line2, "BURST%3ums/%3ums", adc_vr_3/2, adc_vr_4/2);
+      break;
+
+    // MIDI Mode
+    case 32:
+      sprintf(lcd_line1, "MID:%4uHz/%3uus", adc_vr_1+5, adc_vr_2/4);
+      sprintf(lcd_line2, "MIDI MODE       ");
+      break;
+  }
+  lcd.setCursor(0,0);
+  lcd.print(lcd_line1);
+  lcd.setCursor(0,1);
+  lcd.print(lcd_line2);
 }
 
 
 // Interrupt Tasks
 ISR (TIMER1_COMPA_vect) {
-  output_single_pulse(0, osc_mono_ontime_us[0]);
+  switch (int_mode) {
+    case 0:
+      output_single_pulse(0, osc_us);
+      break;
+    case 32:
+      output_single_pulse(0, osc_mono_ontime_us[0]);
+      break;
+  }
 }
 
 
 // Interrupt Tasks
 ISR (TIMER3_COMPA_vect) {
-  output_single_pulse(1, osc_mono_ontime_us[1]);
+  switch (int_mode) {
+    case 0:
+      output_single_pulse(1, osc_us);
+      break;
+    case 32:
+      output_single_pulse(1, osc_mono_ontime_us[1]);
+      break;
+  }
 }
 
 

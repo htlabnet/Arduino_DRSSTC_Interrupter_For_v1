@@ -22,6 +22,17 @@ void osc_timer_init() {
   interrupts();
 }
 
+void osc_timer_init_64() {
+  noInterrupts();
+  
+  TCCR1A = 0;   // Set Timer1
+  TCCR1B = _BV(WGM12) | _BV(CS11) | _BV(CS10);    // Set CTC Mode (Prescaler=64)
+
+  TCCR3A = 0;   // Set Timer3
+  TCCR3B = _BV(WGM32) | _BV(CS31) | _BV(CS30);    // Set CTC Mode (Prescaler=64)
+  
+  interrupts();
+}
 
 void osc_timer_enable(byte osc, unsigned int period) {
   switch(osc) {

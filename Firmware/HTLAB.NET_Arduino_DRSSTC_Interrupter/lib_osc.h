@@ -6,9 +6,8 @@
 #include "settings.h"
 
 void osc_timer_init();
+void osc_timer_init_64();
 void osc_timer_enable(byte osc, unsigned int period);
 void osc_timer_disable(byte osc);
 
 #endif
-
-
