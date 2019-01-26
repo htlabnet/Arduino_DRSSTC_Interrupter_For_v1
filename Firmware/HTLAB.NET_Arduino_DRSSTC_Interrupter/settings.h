@@ -54,7 +54,7 @@
 #define OSC_TIMER_DIVIDER 8
 
 // For Debug
-#define DEBUG_SERIAL true
+#define DEBUG_SERIAL false
 
 // Wait for Serial Port
 #define DEBUG_SERIAL_WAIT false

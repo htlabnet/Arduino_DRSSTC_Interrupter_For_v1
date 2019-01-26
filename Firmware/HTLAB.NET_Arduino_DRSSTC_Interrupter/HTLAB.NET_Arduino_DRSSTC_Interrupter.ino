@@ -234,8 +234,6 @@ void loop() {
   // LCD
   show_lcd(int_mode);
 
-Serial.println(gpio_push_1);
-
 }
 
 
