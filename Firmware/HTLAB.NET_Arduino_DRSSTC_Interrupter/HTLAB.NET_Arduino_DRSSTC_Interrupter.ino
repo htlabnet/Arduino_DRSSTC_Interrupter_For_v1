@@ -45,12 +45,10 @@
 // ########## Require Libraries ##########
 //    - MIDI Library 4.3
 //
-//
 
 //
 // ########## Optional Libraries ##########
 //    - MIDIUSB Library 1.0.3 (for Arduino Leonardo, Micro)
-//
 //
 
 // LCD
@@ -101,6 +99,13 @@ volatile unsigned int osc_us = 1;
 volatile unsigned int osc_per = 25000;
 volatile unsigned int osc_per_read = 25000;
 
+// Burst OSC Mode Variables
+volatile boolean burst_phase = false;
+volatile unsigned int burst_ontime = 10;
+volatile unsigned int burst_offtime = 10; 
+volatile unsigned int burst_ontime_count = 0;
+volatile unsigned int burst_offtime_count = 0; 
+
 // MIDI Mode Variables
 volatile boolean use_midi_volume = USE_MIDI_VOLUME;
 //volatile boolean osc_mode_omni = OSC_MODE_OMNI;
@@ -115,7 +120,7 @@ volatile unsigned long osc_mono_fixed_ontime_max_us[2] = {OSC_FIXED_ONTIME_US_1,
 
 // Arduino Setup Function
 void setup() {
-  
+
   // Pin Init
   input_init();
   output_init();
@@ -126,7 +131,7 @@ void setup() {
   lcd.print("HTLAB.NET DRSSTC");
   lcd.setCursor(0,1);
   lcd.print("Interrupter v1.0");
-  delay(1000);
+  delay(3000);
 
   // For Debug
   #if DEBUG_SERIAL
@@ -136,7 +141,7 @@ void setup() {
       Serial.println("[INFO] Arduino Start");
     #endif
   #endif
-  
+
   // Use MIDI Library
   MIDI.setHandleNoteOn(isr_midi_noteon);
   MIDI.setHandleNoteOff(isr_midi_noteoff);
@@ -147,15 +152,16 @@ void setup() {
   #if DEBUG_SERIAL
     Serial.println("[INFO] MIDI Library Load Complete");
   #endif
-  
+
   // Oscillator Tasks
   osc_timer_init();
   #if DEBUG_SERIAL
     Serial.println("[INFO] Oscillator Tasks Complete");
   #endif
 
+  // Mode Init Tasks
   mode_init(menu_read);
-  
+
 }
 
 
@@ -172,6 +178,7 @@ void loop() {
 
   // OSC Tasks
   switch (int_mode) {
+    // OSC Mode
     case 0:
       osc_fq = adc_vr_1 + 5;
       osc_us = (adc_vr_2 >> 2) + 1;
@@ -182,21 +189,26 @@ void loop() {
         OCR3A = osc_per;
       }
       break;
-    
+    // Burst OSC Mode
+    case 16:
+      burst_ontime = (adc_vr_3 >> 1) + 10;
+      burst_offtime = (adc_vr_4_inv >> 1) + 10;
+      osc_fq = adc_vr_1 + 5;
+      osc_us = (adc_vr_2 >> 2) + 1;
+      osc_per_read = 250000 / osc_fq;
+      if (osc_per != osc_per_read) {
+        osc_per = osc_per_read;
+        OCR1A = osc_per;
+      }
+      break;
   }
 
-
-
-  
-  //Serial.println(adc_vr_4 >> 8); //0-3
-  //Serial.println(gpio_sw_1);
-  
   // MIDI Tasks
   MIDI.read();
-  
+
   // LCD
   show_lcd(int_mode);
-  
+
 }
 
 
@@ -209,7 +221,14 @@ void mode_init(byte mode) {
       osc_timer_disable(1);
       osc_timer_init_64();
       osc_timer_enable(0, osc_per);
-      osc_timer_enable(1, osc_per);
+      break;
+    // Burst OSC Mode
+    case 16:
+      osc_timer_disable(0);
+      osc_timer_disable(1);
+      osc_timer_init_64();
+      osc_timer_enable(0, osc_per);
+      osc_timer_enable(1, 249);
       break;
     // MIDI Mode
     case 32:
@@ -236,13 +255,13 @@ void show_lcd(byte mode) {
     // Burst OSC Mode
     case 16:
       sprintf(lcd_line1, "OSC:%4uHz/%3uus", osc_fq, osc_us);
-      sprintf(lcd_line2, "BURST%3ums/%3ums", adc_vr_3/2, adc_vr_4/2);
+      sprintf(lcd_line2, "BURST%3ums/%3ums", burst_ontime, burst_offtime);
       break;
 
     // MIDI Mode
     case 32:
-      sprintf(lcd_line1, "MID:%4uHz/%3uus", adc_vr_1+5, adc_vr_2/4);
-      sprintf(lcd_line2, "MIDI MODE       ");
+      sprintf(lcd_line1, "MIDI MODE       ");
+      sprintf(lcd_line2, "                ");
       break;
   }
   lcd.setCursor(0,0);
@@ -255,9 +274,17 @@ void show_lcd(byte mode) {
 // Interrupt Tasks
 ISR (TIMER1_COMPA_vect) {
   switch (int_mode) {
+    // OSC Mode Main Timer
     case 0:
-      output_single_pulse(0, osc_us);
+      output_dual_pulse(osc_us);
       break;
+    // Burst OSC Mode
+    case 16:
+      if (burst_phase) {
+        output_dual_pulse(osc_us);
+      }
+      break;
+    // MIDI Mode
     case 32:
       output_single_pulse(0, osc_mono_ontime_us[0]);
       break;
@@ -268,9 +295,28 @@ ISR (TIMER1_COMPA_vect) {
 // Interrupt Tasks
 ISR (TIMER3_COMPA_vect) {
   switch (int_mode) {
+    // OSC Mode
     case 0:
-      output_single_pulse(1, osc_us);
+      //output_single_pulse(1, osc_us);
       break;
+    // Burst OSC Mode
+    case 16:
+      if (burst_phase) {
+        if (burst_ontime_count >= burst_ontime) {
+          burst_ontime_count = 0;
+          burst_phase = false;
+        } else {
+          burst_ontime_count++;
+        }
+      } else {
+        if (burst_offtime_count >= burst_offtime) {
+          burst_offtime_count = 0;
+          burst_phase = true;
+        } else {
+          burst_offtime_count++;
+        }
+      }
+    // MIDI Mode
     case 32:
       output_single_pulse(1, osc_mono_ontime_us[1]);
       break;
@@ -345,7 +391,7 @@ void isr_midi_noteoff(byte ch, byte num, byte vel) {
 
 
 void isr_midi_controlchange(byte ch, byte num, byte val) {
-  
+
   switch(num) {
     case 7:   // CC#7   Channel Volume
       osc_mono_midi_volume[ch - 1] = val;
@@ -371,7 +417,7 @@ void isr_midi_controlchange(byte ch, byte num, byte val) {
       //osc_mode_omni = true;
       break;
   }
-  
+
   // For Debug
   #if DEBUG_SERIAL
     Serial.print("[MIDI] CC - CH:");
@@ -386,7 +432,6 @@ void isr_midi_controlchange(byte ch, byte num, byte val) {
 
 void isr_midi_activesensing() {
 
-
   // For Debug
   #if DEBUG_SERIAL
     Serial.println("[MIDI] Active Sensing");
@@ -395,7 +440,7 @@ void isr_midi_activesensing() {
 
 
 void isr_midi_systemreset() {
-  
+
   osc_timer_disable(0);
   osc_timer_disable(1);
   //osc_mode_omni = OSC_MODE_OMNI;
@@ -403,7 +448,7 @@ void isr_midi_systemreset() {
   osc_mono_midi_volume[1] = 64;
   osc_mono_midi_expression[0] = 127;
   osc_mono_midi_expression[0] = 127;
-  
+
   // For Debug
   #if DEBUG_SERIAL
     Serial.println("[MIDI] System Reset");

@@ -6,7 +6,6 @@
 
 void output_init();
 void output_single_pulse(byte pin, unsigned int ontime);
+void output_dual_pulse(unsigned int ontime);
 
 #endif
-
-

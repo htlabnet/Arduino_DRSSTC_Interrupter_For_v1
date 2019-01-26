@@ -1,36 +1,34 @@
 #include "lib_osc.h"
 
-//extern void output_single_pulse(byte pin, unsigned int ontime);
-
 void osc_timer_init() {
   noInterrupts();
-  
+
   TCCR1A = 0;   // Set Timer1
   #if OSC_TIMER_DIVIDER == 8
     TCCR1B = _BV(WGM12) | _BV(CS11);    // Set CTC Mode (Prescaler=8)
   #elif OSC_TIMER_DIVIDER == 64
     TCCR1B = _BV(WGM12) | _BV(CS11) | _BV(CS10);    // Set CTC Mode (Prescaler=64)
   #endif
-  
+
   TCCR3A = 0;   // Set Timer3
   #if OSC_TIMER_DIVIDER == 8
     TCCR3B = _BV(WGM32) | _BV(CS31);    // Set CTC Mode (Prescaler=8)
   #elif OSC_TIMER_DIVIDER == 64
     TCCR3B = _BV(WGM32) | _BV(CS31) | _BV(CS30);    // Set CTC Mode (Prescaler=64)
   #endif
-  
+
   interrupts();
 }
 
 void osc_timer_init_64() {
   noInterrupts();
-  
+
   TCCR1A = 0;   // Set Timer1
   TCCR1B = _BV(WGM12) | _BV(CS11) | _BV(CS10);    // Set CTC Mode (Prescaler=64)
 
   TCCR3A = 0;   // Set Timer3
   TCCR3B = _BV(WGM32) | _BV(CS31) | _BV(CS30);    // Set CTC Mode (Prescaler=64)
-  
+
   interrupts();
 }
 

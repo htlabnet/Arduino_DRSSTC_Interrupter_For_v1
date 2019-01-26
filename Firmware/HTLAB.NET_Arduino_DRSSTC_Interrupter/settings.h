@@ -53,8 +53,8 @@
 // 8 or 64
 #define OSC_TIMER_DIVIDER 8
 
-// For Debug (Arduino Leonardo, Micro)
-#define DEBUG_SERIAL true
+// For Debug
+#define DEBUG_SERIAL false
 
 // Wait for Serial Port
 #define DEBUG_SERIAL_WAIT false

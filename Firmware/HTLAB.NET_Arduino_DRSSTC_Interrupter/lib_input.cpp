@@ -4,6 +4,10 @@ volatile unsigned int adc_vr_1 = DEFAULT_VR1;
 volatile unsigned int adc_vr_2 = DEFAULT_VR2;
 volatile unsigned int adc_vr_3 = DEFAULT_VR3;
 volatile unsigned int adc_vr_4 = DEFAULT_VR4;
+volatile unsigned int adc_vr_1_inv = 1023 - DEFAULT_VR1;
+volatile unsigned int adc_vr_2_inv = 1023 - DEFAULT_VR2;
+volatile unsigned int adc_vr_3_inv = 1023 - DEFAULT_VR3;
+volatile unsigned int adc_vr_4_inv = 1023 - DEFAULT_VR4;
 volatile boolean gpio_sw_1 = DEFAULT_SW1;
 volatile boolean gpio_sw_2 = DEFAULT_SW2;
 
@@ -40,29 +44,37 @@ void input_task() {
   #if USE_VR1
     #if !INVERT_VR1
       adc_vr_1 = ((float)adc_vr_1 * 0.9) + ((float)analogRead(A0) * 0.1);
+      adc_vr_1_inv = ((float)adc_vr_1_inv * 0.9) + ((float)(1023 - analogRead(A0)) * 0.1);
     #else
       adc_vr_1 = ((float)adc_vr_1 * 0.9) + ((float)(1023 - analogRead(A0)) * 0.1);
+      adc_vr_1_inv = ((float)adc_vr_1_inv * 0.9) + ((float)analogRead(A0) * 0.1);
     #endif
   #endif
   #if USE_VR2
     #if !INVERT_VR2
       adc_vr_2 = ((float)adc_vr_2 * 0.9) + ((float)analogRead(A1) * 0.1);
+      adc_vr_2_inv = ((float)adc_vr_2_inv * 0.9) + ((float)(1023 - analogRead(A1)) * 0.1);
     #else
       adc_vr_2 = ((float)adc_vr_2 * 0.9) + ((float)(1023 - analogRead(A1)) * 0.1);
+      adc_vr_2_inv = ((float)adc_vr_2_inv * 0.9) + ((float)analogRead(A1) * 0.1);
     #endif
   #endif
   #if USE_VR3
     #if !INVERT_VR3
       adc_vr_3 = ((float)adc_vr_3 * 0.9) + ((float)analogRead(A2) * 0.1);
+      adc_vr_3_inv = ((float)adc_vr_3_inv * 0.9) + ((float)(1023 - analogRead(A2)) * 0.1);
     #else
       adc_vr_3 = ((float)adc_vr_3 * 0.9) + ((float)(1023 - analogRead(A2)) * 0.1);
+      adc_vr_3_inv = ((float)adc_vr_3_inv * 0.9) + ((float)analogRead(A2) * 0.1);
     #endif
   #endif
   #if USE_VR4
     #if !INVERT_VR4
       adc_vr_4 = ((float)adc_vr_4 * 0.9) + ((float)analogRead(A3) * 0.1);
+      adc_vr_4_inv = ((float)adc_vr_4_inv * 0.9) + ((float)(1023 - analogRead(A3)) * 0.1);
     #else
       adc_vr_4 = ((float)adc_vr_4 * 0.9) + ((float)(1023 - analogRead(A3)) * 0.1);
+      adc_vr_4_inv = ((float)adc_vr_4_inv * 0.9) + ((float)analogRead(A3) * 0.1);
     #endif
   #endif
   #if USE_SW1
@@ -83,14 +95,6 @@ void input_task() {
 
 
 byte menu_select() {
-
-//  0 = Default OSC Mode
-// 16 = Burst OSC Mode
-// 17 = One Shot Mode
-// 32 = MIDI Mono Mode (vel = MIDI)
-// 33 = MIDI Mono Mode (vel = Manual)
-// 64 = MIDI Poly Mode
-
 
   // OSC Mode
   if (gpio_sw_1 && gpio_sw_2) {
