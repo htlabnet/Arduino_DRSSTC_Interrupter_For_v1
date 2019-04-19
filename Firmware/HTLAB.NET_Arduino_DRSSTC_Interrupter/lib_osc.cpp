@@ -58,3 +58,21 @@ void osc_timer_disable(byte osc) {
       break;
   }
 }
+
+
+void osc_timer_set(byte osc, unsigned int period) {
+  switch(osc) {
+    case 0:
+      if (TCNT1 >= period) {
+        TCNT1 = 0;
+      }
+      OCR1A = period;
+      break;
+    case 1:
+      if (TCNT3 >= period) {
+        TCNT3 = 0;
+      }
+      OCR3A = period;
+      break;
+  }
+}

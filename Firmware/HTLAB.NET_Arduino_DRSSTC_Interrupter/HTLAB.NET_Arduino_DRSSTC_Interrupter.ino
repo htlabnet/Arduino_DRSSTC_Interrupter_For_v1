@@ -188,9 +188,15 @@ void loop() {
       osc_us = (adc_vr_2 >> 2) + 1;
       osc_per_read = (250000 / osc_fq) - 1;
       if (osc_per != osc_per_read) {
+        #if DEBUG_SERIAL
+          Serial.print("[OSC] Change Frequency : ");
+          Serial.print(osc_fq);
+          Serial.print(" Hz/ ");
+          Serial.println(osc_per_read);
+        #endif
         osc_per = osc_per_read;
-        OCR1A = osc_per;
-        OCR3A = osc_per;
+        osc_timer_set(0, osc_per);
+        osc_timer_set(1, osc_per);
       }
       break;
     // One Shot Mode
@@ -205,8 +211,8 @@ void loop() {
       osc_per_read = (250000 / osc_fq) - 1;
       if (osc_per != osc_per_read) {
         osc_per = osc_per_read;
-        OCR1A = osc_per;
-        OCR3A = osc_per;
+        osc_timer_set(0, osc_per);
+        osc_timer_set(1, osc_per);
       }
       break;
     // High Power One Shot Mode
@@ -223,7 +229,7 @@ void loop() {
       osc_per_read = (250000 / osc_fq) - 1;
       if (osc_per != osc_per_read) {
         osc_per = osc_per_read;
-        OCR1A = osc_per;
+        osc_timer_set(0, osc_per);
       }
       break;
   }
@@ -436,6 +442,7 @@ ISR (TIMER3_COMPA_vect) {
           burst_offtime_count++;
         }
       }
+      break;
     // MIDI Mode
     case MODE_MIDI:
       output_single_pulse(1, osc_mono_ontime_us[1]);
@@ -446,6 +453,8 @@ ISR (TIMER3_COMPA_vect) {
 
 // Interrupt MIDI NoteON Tasks
 void isr_midi_noteon(byte ch, byte num, byte vel) {
+
+  if (int_mode != MODE_MIDI) return;  // MIDI Mode Only
 
   if (ch == 1 || ch == 2) {
     if (osc_mono_midi_note[ch - 1] == num) {
@@ -491,6 +500,8 @@ void isr_midi_noteon(byte ch, byte num, byte vel) {
 // Interrupt MIDI NoteOFF Tasks
 void isr_midi_noteoff(byte ch, byte num, byte vel) {
 
+  if (int_mode != MODE_MIDI) { return; }  // MIDI Mode Only
+
   if (ch == 1 || ch == 2) {
     if (osc_mono_midi_note[ch - 1] == num) {
       osc_timer_disable(ch - 1);
@@ -511,6 +522,8 @@ void isr_midi_noteoff(byte ch, byte num, byte vel) {
 
 
 void isr_midi_controlchange(byte ch, byte num, byte val) {
+
+  if (int_mode != MODE_MIDI) return;  // MIDI Mode Only
 
   switch(num) {
     case 7:   // CC#7   Channel Volume
@@ -552,6 +565,8 @@ void isr_midi_controlchange(byte ch, byte num, byte val) {
 
 void isr_midi_activesensing() {
 
+  if (int_mode != MODE_MIDI) return;  // MIDI Mode Only
+
   // For Debug
   #if DEBUG_SERIAL
     Serial.println("[MIDI] Active Sensing");
@@ -560,6 +575,8 @@ void isr_midi_activesensing() {
 
 
 void isr_midi_systemreset() {
+
+  if (int_mode != MODE_MIDI) return;  // MIDI Mode Only
 
   osc_timer_disable(0);
   osc_timer_disable(1);
