@@ -235,11 +235,22 @@ void loop() {
   }
 
   // MIDI Tasks
-  MIDI.read();
+  midi_task();
 
   // LCD
   show_lcd(int_mode);
 
+  // MIDI Tasks
+  midi_task();
+
+}
+
+
+void midi_task() {
+  // MIDI Tasks
+  for (unsigned int i = 0; i < 100; i++) {
+    MIDI.read();
+  }
 }
 
 
@@ -344,7 +355,7 @@ void show_lcd(byte mode) {
 
     // High Power One Shot Mode
     case MODE_OSC_HP_OS:
-      sprintf(lcd_line1, "HIGH POW ONESHOT");
+      sprintf(lcd_line1, "HIGH PWR ONESHOT");
       sprintf(lcd_line2, "1:%5uu2:%5uu", oneshot_ch1_ontime, oneshot_ch2_ontime);
       break;
 

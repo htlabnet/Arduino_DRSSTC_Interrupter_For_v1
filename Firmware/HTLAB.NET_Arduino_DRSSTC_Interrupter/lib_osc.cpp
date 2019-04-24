@@ -63,16 +63,16 @@ void osc_timer_disable(byte osc) {
 void osc_timer_set(byte osc, unsigned int period) {
   switch(osc) {
     case 0:
-      if (TCNT1 >= period) {
-        TCNT1 = 0;
-      }
       OCR1A = period;
+      if (TCNT1 >= period) {
+        TCNT1 = period - 1;
+      }
       break;
     case 1:
-      if (TCNT3 >= period) {
-        TCNT3 = 0;
-      }
       OCR3A = period;
+      if (TCNT3 >= period) {
+        TCNT3 = period - 1;
+      }
       break;
   }
 }
