@@ -115,7 +115,7 @@ byte menu_select() {
   // OSC Mode
   if (gpio_sw_1 && gpio_sw_2) {
     // Volume Mode Select
-    switch (adc_vr_4 >> 8) {
+    switch (adc_vr_4 >> INTERRUPTER_MODE_SELECTOR) {
       case 0:
         return MODE_OSC;
       case 1:

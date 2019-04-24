@@ -29,6 +29,11 @@
 #define INVERT_PUSH1 false
 #define INVERT_PUSH2 false
 
+// Interrupter Mode Selector
+//  8 : 4-Mode [OSC, OSC_OneShot, HighPower_OSC, HighPower_OSC_OneShot]
+//  9 : 2-Mode [OSC, OSC_OneShot]
+// 10 : 1-Mode [OSC]
+#define INTERRUPTER_MODE_SELECTOR 8
 
 // Use MIDIUSB Library
 #define USE_MIDIUSB true
