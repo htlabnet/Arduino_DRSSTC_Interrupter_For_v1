@@ -81,30 +81,30 @@ void input_task() {
   #endif
   #if USE_SW1
     #if !INVERT_SW1
-      gpio_sw_1 = digitalRead(A4);
+      gpio_sw_1 = (boolean)digitalRead(A4);
     #else
-      gpio_sw_1 = !digitalRead(A4);
+      gpio_sw_1 = !(boolean)digitalRead(A4);
     #endif
   #endif
   #if USE_SW2
     #if !INVERT_SW2
-      gpio_sw_2 = digitalRead(A5);
+      gpio_sw_2 = (boolean)digitalRead(A5);
     #else
-      gpio_sw_2 = !digitalRead(A5);
+      gpio_sw_2 = !(boolean)digitalRead(A5);
     #endif
   #endif
   #if USE_PUSH1
     #if !INVERT_PUSH1
-      gpio_push_1 = digitalRead(2);
+      gpio_push_1 = (boolean)digitalRead(2);
     #else
-      gpio_push_1 = !digitalRead(2);
+      gpio_push_1 = !(boolean)digitalRead(2);
     #endif
   #endif
   #if USE_PUSH2
     #if !INVERT_PUSH2
-      gpio_push_2 = digitalRead(3);
+      gpio_push_2 = (boolean)digitalRead(3);
     #else
-      gpio_push_2 = !digitalRead(3);
+      gpio_push_2 = !(boolean)digitalRead(3);
     #endif
   #endif
 }

@@ -146,6 +146,39 @@ void setup() {
     #endif
   #endif
 
+  // Setting Mode
+  if(!(INVERT_SW1 ^ (boolean)digitalRead(2))){
+    char lcd_line[17];
+    uint8_t midi_ch[2] = {1, 2};
+    lcd.setCursor(0,0);
+    lcd.print("[ SETTING MODE ]");
+    while(INVERT_SW1 ^ (boolean)digitalRead(3)) {
+      // Read Inputs
+      input_task();
+      #if !INVERT_VR1
+        midi_ch[0] = (adc_vr_1 >> 6) + 1;
+      #else
+        midi_ch[0] = (adc_vr_1_inv >> 6) + 1;
+      #endif
+      #if !INVERT_VR2
+        midi_ch[1] = (adc_vr_2 >> 6) + 1;
+      #else
+        midi_ch[1] = (adc_vr_2_inv >> 6) + 1;
+      #endif
+      sprintf(lcd_line, "Ch%2u Ch%2u       ", midi_ch[0], midi_ch[1]);
+      lcd.setCursor(0,1);
+      lcd.print(lcd_line);
+      delay(1);
+    }
+    // Save Settings
+    
+    lcd.setCursor(0,0);
+    lcd.print("[ SETTING DONE ]");
+    lcd.setCursor(0,1);
+    lcd.print("                ");
+    delay(2000);
+  }
+
   // Use MIDI Library
   MIDI.setHandleNoteOn(isr_midi_noteon);
   MIDI.setHandleNoteOff(isr_midi_noteoff);
