@@ -1,42 +1,42 @@
 #include "lib_input.h"
 
-volatile unsigned int adc_vr_1 = DEFAULT_VR1;
-volatile unsigned int adc_vr_2 = DEFAULT_VR2;
-volatile unsigned int adc_vr_3 = DEFAULT_VR3;
-volatile unsigned int adc_vr_4 = DEFAULT_VR4;
-volatile unsigned int adc_vr_1_inv = 1023 - DEFAULT_VR1;
-volatile unsigned int adc_vr_2_inv = 1023 - DEFAULT_VR2;
-volatile unsigned int adc_vr_3_inv = 1023 - DEFAULT_VR3;
-volatile unsigned int adc_vr_4_inv = 1023 - DEFAULT_VR4;
-volatile boolean gpio_sw_1 = DEFAULT_SW1;
-volatile boolean gpio_sw_2 = DEFAULT_SW2;
-volatile boolean gpio_push_1;
-volatile boolean gpio_push_2;
+volatile uint16_t adc_vr_1 = DEFAULT_VR1;
+volatile uint16_t adc_vr_2 = DEFAULT_VR2;
+volatile uint16_t adc_vr_3 = DEFAULT_VR3;
+volatile uint16_t adc_vr_4 = DEFAULT_VR4;
+volatile uint16_t adc_vr_1_inv = 1013 - DEFAULT_VR1;
+volatile uint16_t adc_vr_2_inv = 1013 - DEFAULT_VR2;
+volatile uint16_t adc_vr_3_inv = 1013 - DEFAULT_VR3;
+volatile uint16_t adc_vr_4_inv = 1013 - DEFAULT_VR4;
+volatile bool gpio_sw_1 = !(DEFAULT_SW1);
+volatile bool gpio_sw_2 = !(DEFAULT_SW2);
+volatile bool gpio_push_1;
+volatile bool gpio_push_2;
 
 void input_init() {
   #if USE_VR1
-    pinMode(A0, INPUT);
+    pinMode(PIN_VR1, INPUT);
   #endif
   #if USE_VR2
-    pinMode(A1, INPUT);
+    pinMode(PIN_VR2, INPUT);
   #endif
   #if USE_VR3
-    pinMode(A2, INPUT);
+    pinMode(PIN_VR3, INPUT);
   #endif
   #if USE_VR4
-    pinMode(A3, INPUT);
+    pinMode(PIN_VR4, INPUT);
   #endif
   #if USE_SW1
-    pinMode(A4, INPUT_PULLUP);
+    pinMode(PIN_SW1, INPUT_PULLUP);
   #endif
   #if USE_SW2
-    pinMode(A5, INPUT_PULLUP);
+    pinMode(PIN_SW2, INPUT_PULLUP);
   #endif
   #if USE_PUSH1
-    pinMode(2, INPUT_PULLUP);
+    pinMode(PIN_PUSH1, INPUT_PULLUP);
   #endif
   #if USE_PUSH2
-    pinMode(3, INPUT_PULLUP);
+    pinMode(PIN_PUSH2, INPUT_PULLUP);
   #endif
 }
 
@@ -45,66 +45,66 @@ void input_task() {
   // Read Volume
   #if USE_VR1
     #if !INVERT_VR1
-      adc_vr_1 = ((float)adc_vr_1 * 0.9) + ((float)analogRead(A0) * 0.1);
-      adc_vr_1_inv = ((float)adc_vr_1_inv * 0.9) + ((float)(1023 - analogRead(A0)) * 0.1);
+      adc_vr_1 = ((float)adc_vr_1 * 0.9) + ((float)analogRead(PIN_VR1) * 0.1);
+      adc_vr_1_inv = ((float)adc_vr_1_inv * 0.9) + ((float)(1023 - analogRead(PIN_VR1)) * 0.1);
     #else
-      adc_vr_1 = ((float)adc_vr_1 * 0.9) + ((float)(1023 - analogRead(A0)) * 0.1);
-      adc_vr_1_inv = ((float)adc_vr_1_inv * 0.9) + ((float)analogRead(A0) * 0.1);
+      adc_vr_1 = ((float)adc_vr_1 * 0.9) + ((float)(1023 - analogRead(PIN_VR1)) * 0.1);
+      adc_vr_1_inv = ((float)adc_vr_1_inv * 0.9) + ((float)analogRead(PIN_VR1) * 0.1);
     #endif
   #endif
   #if USE_VR2
     #if !INVERT_VR2
-      adc_vr_2 = ((float)adc_vr_2 * 0.9) + ((float)analogRead(A1) * 0.1);
-      adc_vr_2_inv = ((float)adc_vr_2_inv * 0.9) + ((float)(1023 - analogRead(A1)) * 0.1);
+      adc_vr_2 = ((float)adc_vr_2 * 0.9) + ((float)analogRead(PIN_VR2) * 0.1);
+      adc_vr_2_inv = ((float)adc_vr_2_inv * 0.9) + ((float)(1023 - analogRead(PIN_VR2)) * 0.1);
     #else
-      adc_vr_2 = ((float)adc_vr_2 * 0.9) + ((float)(1023 - analogRead(A1)) * 0.1);
-      adc_vr_2_inv = ((float)adc_vr_2_inv * 0.9) + ((float)analogRead(A1) * 0.1);
+      adc_vr_2 = ((float)adc_vr_2 * 0.9) + ((float)(1023 - analogRead(PIN_VR2)) * 0.1);
+      adc_vr_2_inv = ((float)adc_vr_2_inv * 0.9) + ((float)analogRead(PIN_VR2) * 0.1);
     #endif
   #endif
   #if USE_VR3
     #if !INVERT_VR3
-      adc_vr_3 = ((float)adc_vr_3 * 0.9) + ((float)analogRead(A2) * 0.1);
-      adc_vr_3_inv = ((float)adc_vr_3_inv * 0.9) + ((float)(1023 - analogRead(A2)) * 0.1);
+      adc_vr_3 = ((float)adc_vr_3 * 0.9) + ((float)analogRead(PIN_VR3) * 0.1);
+      adc_vr_3_inv = ((float)adc_vr_3_inv * 0.9) + ((float)(1023 - analogRead(PIN_VR3)) * 0.1);
     #else
-      adc_vr_3 = ((float)adc_vr_3 * 0.9) + ((float)(1023 - analogRead(A2)) * 0.1);
-      adc_vr_3_inv = ((float)adc_vr_3_inv * 0.9) + ((float)analogRead(A2) * 0.1);
+      adc_vr_3 = ((float)adc_vr_3 * 0.9) + ((float)(1023 - analogRead(PIN_VR3)) * 0.1);
+      adc_vr_3_inv = ((float)adc_vr_3_inv * 0.9) + ((float)analogRead(PIN_VR3) * 0.1);
     #endif
   #endif
   #if USE_VR4
     #if !INVERT_VR4
-      adc_vr_4 = ((float)adc_vr_4 * 0.9) + ((float)analogRead(A3) * 0.1);
-      adc_vr_4_inv = ((float)adc_vr_4_inv * 0.9) + ((float)(1023 - analogRead(A3)) * 0.1);
+      adc_vr_4 = ((float)adc_vr_4 * 0.9) + ((float)analogRead(PIN_VR4) * 0.1);
+      adc_vr_4_inv = ((float)adc_vr_4_inv * 0.9) + ((float)(1023 - analogRead(PIN_VR4)) * 0.1);
     #else
-      adc_vr_4 = ((float)adc_vr_4 * 0.9) + ((float)(1023 - analogRead(A3)) * 0.1);
-      adc_vr_4_inv = ((float)adc_vr_4_inv * 0.9) + ((float)analogRead(A3) * 0.1);
+      adc_vr_4 = ((float)adc_vr_4 * 0.9) + ((float)(1023 - analogRead(PIN_VR4)) * 0.1);
+      adc_vr_4_inv = ((float)adc_vr_4_inv * 0.9) + ((float)analogRead(PIN_VR4) * 0.1);
     #endif
   #endif
   #if USE_SW1
     #if !INVERT_SW1
-      gpio_sw_1 = (boolean)digitalRead(A4);
+      gpio_sw_1 = (bool)digitalRead(PIN_SW1);
     #else
-      gpio_sw_1 = !(boolean)digitalRead(A4);
+      gpio_sw_1 = !(bool)digitalRead(PIN_SW1);
     #endif
   #endif
   #if USE_SW2
     #if !INVERT_SW2
-      gpio_sw_2 = (boolean)digitalRead(A5);
+      gpio_sw_2 = (bool)digitalRead(PIN_SW2);
     #else
-      gpio_sw_2 = !(boolean)digitalRead(A5);
+      gpio_sw_2 = !(bool)digitalRead(PIN_SW2);
     #endif
   #endif
   #if USE_PUSH1
     #if !INVERT_PUSH1
-      gpio_push_1 = (boolean)digitalRead(2);
+      gpio_push_1 = (bool)digitalRead(PIN_PUSH1);
     #else
-      gpio_push_1 = !(boolean)digitalRead(2);
+      gpio_push_1 = !(bool)digitalRead(PIN_PUSH1);
     #endif
   #endif
   #if USE_PUSH2
     #if !INVERT_PUSH2
-      gpio_push_2 = (boolean)digitalRead(3);
+      gpio_push_2 = (bool)digitalRead(PIN_PUSH2);
     #else
-      gpio_push_2 = !(boolean)digitalRead(3);
+      gpio_push_2 = !(bool)digitalRead(PIN_PUSH2);
     #endif
   #endif
 }

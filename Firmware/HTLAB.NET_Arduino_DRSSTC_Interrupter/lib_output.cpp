@@ -9,7 +9,7 @@ void output_init() {
 }
 
 
-void output_single_pulse(byte pin, unsigned int ontime) {
+void output_single_pulse(uint8_t pin, uint16_t ontime) {
 
   // Arduino Leonardo, Micro (ATmega32u4)
   // D10-11 = PB6-7
@@ -20,7 +20,7 @@ void output_single_pulse(byte pin, unsigned int ontime) {
 }
 
 
-void output_dual_pulse(unsigned int ontime) {
+void output_dual_pulse(uint16_t ontime) {
 
   // Arduino Leonardo, Micro (ATmega32u4)
   // D10-11 = PB6-7

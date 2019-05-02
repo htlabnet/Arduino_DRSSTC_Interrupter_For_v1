@@ -21,13 +21,16 @@
 #define USE_SW2 true
 #define INVERT_SW1 false
 #define INVERT_SW2 false
-#define DEFAULT_SW1 true
-#define DEFAULT_SW2 true
+#define DEFAULT_SW1 false
+#define DEFAULT_SW2 false
 
 #define USE_PUSH1 true
 #define USE_PUSH2 true
 #define INVERT_PUSH1 false
 #define INVERT_PUSH2 false
+
+// Use Setting Mode
+#define USE_SETTING_MODE true
 
 // Interrupter Mode Selector
 //  8 : 4-Mode [OSC, OSC_OneShot, HighPower_OSC, HighPower_OSC_OneShot]
@@ -64,12 +67,22 @@
 // Wait for Serial Port
 #define DEBUG_SERIAL_WAIT false
 
-// Mode
+// Mode (Do not change the value)
 #define MODE_OSC 1
 #define MODE_OSC_OS 2
 #define MODE_OSC_HP 4
 #define MODE_OSC_HP_OS 8
 #define MODE_BURST 16
 #define MODE_MIDI 32
+
+// Pin Number (Do not change the value)
+#define PIN_VR1 A0
+#define PIN_VR2 A1
+#define PIN_VR3 A2
+#define PIN_VR4 A3
+#define PIN_SW1 A4
+#define PIN_SW2 A5
+#define PIN_PUSH1 2 //Interrupt1
+#define PIN_PUSH2 3 //Interrupt0
 
 #endif

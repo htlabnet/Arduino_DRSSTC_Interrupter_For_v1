@@ -32,7 +32,7 @@ void osc_timer_init_64() {
   interrupts();
 }
 
-void osc_timer_enable(byte osc, unsigned int period) {
+void osc_timer_enable(uint8_t osc, uint16_t period) {
   switch(osc) {
     case 0:
       OCR1A = period;
@@ -48,7 +48,7 @@ void osc_timer_enable(byte osc, unsigned int period) {
 }
 
 
-void osc_timer_disable(byte osc) {
+void osc_timer_disable(uint8_t osc) {
   switch(osc) {
     case 0:
       TIMSK1 &= ~_BV(OCIE1A);
@@ -60,7 +60,7 @@ void osc_timer_disable(byte osc) {
 }
 
 
-void osc_timer_set(byte osc, unsigned int period) {
+void osc_timer_set(uint8_t osc, uint16_t period) {
   switch(osc) {
     case 0:
       OCR1A = period;

@@ -5,7 +5,7 @@
 #include <Arduino.h>
 
 void output_init();
-void output_single_pulse(byte pin, unsigned int ontime);
-void output_dual_pulse(unsigned int ontime);
+void output_single_pulse(uint8_t pin, uint16_t ontime);
+void output_dual_pulse(uint16_t ontime);
 
 #endif

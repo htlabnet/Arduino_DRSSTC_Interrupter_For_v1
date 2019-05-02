@@ -21,16 +21,16 @@
 
 //
 // ########## Pin Assignments ##########
-//  D2  - PUSH1
-//  D3  - PUSH2
-//  D4  - LCD(RS)
-//  D5  - LCD(ENA)
-//  D6  - LCD(DB4)
-//  D7  - LCD(DB5)
-//  D8  - LCD(DB6)
-//  D9  - LCD(DB7)
-//  D10 - OUT1 (MIDI CH:1)
-//  D11 - OUT2 (MIDI CH:2)
+//  D2  - PUSH1 (Interrupt1)
+//  D3  - PUSH2 (Interrupt0)
+//  D4  - LCD (RS)
+//  D5  - LCD (ENA)
+//  D6  - LCD (DB4)
+//  D7  - LCD (DB5)
+//  D8  - LCD (DB6)
+//  D9  - LCD (DB7)
+//  D10 - OUT1
+//  D11 - OUT2
 //  D12 - (Reserve:OUT3)
 //  D13 - (Reserve:OUT4)
 //  A0  - VR1
@@ -88,38 +88,38 @@ LiquidCrystal lcd(4, 5, 6, 7, 8, 9);
 
 
 // Global Variables
-volatile byte int_mode = MODE_OSC;
-volatile byte menu_read = MODE_OSC;
+volatile uint8_t int_mode = MODE_OSC;
+volatile uint8_t menu_read = MODE_OSC;
 char lcd_line1[17];
 char lcd_line2[17];
 
 // OSC Mode Variables
-volatile unsigned int osc_fq = 5;
-volatile unsigned int osc_us = 1;
-volatile unsigned int osc_per = 49999;
-volatile unsigned int osc_per_read = 49999;
+volatile uint16_t osc_fq = 5;
+volatile uint16_t osc_us = 1;
+volatile uint16_t osc_per = 49999;
+volatile uint16_t osc_per_read = 49999;
 
 // One Shot Mode Variables
-volatile unsigned int oneshot_ch1_ontime = 0;
-volatile unsigned int oneshot_ch2_ontime = 0;
+volatile uint16_t oneshot_ch1_ontime = 0;
+volatile uint16_t oneshot_ch2_ontime = 0;
 
 // Burst OSC Mode Variables
-volatile boolean burst_phase = false;
-volatile unsigned int burst_ontime = 10;
-volatile unsigned int burst_offtime = 510; 
-volatile unsigned int burst_ontime_count = 0;
-volatile unsigned int burst_offtime_count = 0; 
+volatile bool burst_phase = false;
+volatile uint16_t burst_ontime = 10;
+volatile uint16_t burst_offtime = 510; 
+volatile uint16_t burst_ontime_count = 0;
+volatile uint16_t burst_offtime_count = 0; 
 
 // MIDI Mode Variables
-volatile boolean use_midi_volume = USE_MIDI_VOLUME;
-//volatile boolean osc_mode_omni = OSC_MODE_OMNI;
-volatile boolean osc_mode_fixed = OSC_MODE_FIXED;
-volatile byte osc_mono_midi_note[2] = {0, 0};
-volatile byte osc_mono_midi_volume[2] = {64, 64};
-volatile byte osc_mono_midi_expression[2] = {127, 127};
-volatile unsigned int osc_mono_ontime_us[2] = {0, 0};
-volatile unsigned int osc_mono_ontime_max_us[2] = {OSC_ONTIME_US_1, OSC_ONTIME_US_2};
-volatile unsigned long osc_mono_fixed_ontime_max_us[2] = {OSC_FIXED_ONTIME_US_1, OSC_FIXED_ONTIME_US_2};
+volatile bool use_midi_volume = USE_MIDI_VOLUME;
+//volatile bool osc_mode_omni = OSC_MODE_OMNI;
+volatile bool osc_mode_fixed = OSC_MODE_FIXED;
+volatile uint8_t osc_mono_midi_note[2] = {0, 0};
+volatile uint8_t osc_mono_midi_volume[2] = {64, 64};
+volatile uint8_t osc_mono_midi_expression[2] = {127, 127};
+volatile uint16_t osc_mono_ontime_us[2] = {0, 0};
+volatile uint16_t osc_mono_ontime_max_us[2] = {OSC_ONTIME_US_1, OSC_ONTIME_US_2};
+volatile uint32_t osc_mono_fixed_ontime_max_us[2] = {OSC_FIXED_ONTIME_US_1, OSC_FIXED_ONTIME_US_2};
 
 
 // Arduino Setup Function
@@ -147,37 +147,58 @@ void setup() {
   #endif
 
   // Setting Mode
-  if(!(INVERT_SW1 ^ (boolean)digitalRead(2))){
-    char lcd_line[17];
-    uint8_t midi_ch[2] = {1, 2};
-    lcd.setCursor(0,0);
-    lcd.print("[ SETTING MODE ]");
-    while(INVERT_SW1 ^ (boolean)digitalRead(3)) {
-      // Read Inputs
-      input_task();
-      #if !INVERT_VR1
-        midi_ch[0] = (adc_vr_1 >> 6) + 1;
-      #else
-        midi_ch[0] = (adc_vr_1_inv >> 6) + 1;
-      #endif
-      #if !INVERT_VR2
-        midi_ch[1] = (adc_vr_2 >> 6) + 1;
-      #else
-        midi_ch[1] = (adc_vr_2_inv >> 6) + 1;
-      #endif
-      sprintf(lcd_line, "Ch%2u Ch%2u       ", midi_ch[0], midi_ch[1]);
+  #if USE_SETTING_MODE
+    if(!(INVERT_PUSH1 ^ (bool)digitalRead(2))){
+      char lcd_line[17];
+      lcd.setCursor(0,0);
+      lcd.print("[SETTING MODE 1]");
+      while(INVERT_PUSH2 ^ (bool)digitalRead(3)) {
+        // Read Inputs
+        input_task();
+        
+        lcd.setCursor(0,1);
+        lcd.print("                ");
+        delay(1);
+      }
+      // Save Settings
+      
+      lcd.setCursor(0,0);
+      lcd.print("[ SETTING DONE ]");
       lcd.setCursor(0,1);
-      lcd.print(lcd_line);
-      delay(1);
+      lcd.print("                ");
+      delay(2000);
+    } else if(!(INVERT_PUSH2 ^ (bool)digitalRead(3))){
+      char lcd_line[17];
+      uint8_t midi_ch[2] = {1, 2};
+      lcd.setCursor(0,0);
+      lcd.print("[SETTING MODE 2]");
+      while(INVERT_PUSH1 ^ (bool)digitalRead(2)) {
+        // Read Inputs
+        input_task();
+        #if !INVERT_VR1
+          midi_ch[0] = (adc_vr_1 >> 6) + 1;
+        #else
+          midi_ch[0] = (adc_vr_1_inv >> 6) + 1;
+        #endif
+        #if !INVERT_VR2
+          midi_ch[1] = (adc_vr_2 >> 6) + 1;
+        #else
+          midi_ch[1] = (adc_vr_2_inv >> 6) + 1;
+        #endif
+        sprintf(lcd_line, "Ch%2u Ch%2u       ", midi_ch[0], midi_ch[1]);
+        lcd.setCursor(0,1);
+        lcd.print(lcd_line);
+        delay(1);
+      }
+      // Save Settings
+      
+      lcd.setCursor(0,0);
+      lcd.print("[ SETTING DONE ]");
+      lcd.setCursor(0,1);
+      lcd.print("                ");
+      delay(2000);
     }
-    // Save Settings
-    
-    lcd.setCursor(0,0);
-    lcd.print("[ SETTING DONE ]");
-    lcd.setCursor(0,1);
-    lcd.print("                ");
-    delay(2000);
-  }
+  #endif
 
   // Use MIDI Library
   MIDI.setHandleNoteOn(isr_midi_noteon);
@@ -281,7 +302,7 @@ void loop() {
 
 void midi_task() {
   // MIDI Tasks
-  for (unsigned int i = 0; i < 100; i++) {
+  for (uint8_t i = 0; i < 200; i++) {
     MIDI.read();
   }
 }
@@ -496,7 +517,7 @@ ISR (TIMER3_COMPA_vect) {
 
 
 // Interrupt MIDI NoteON Tasks
-void isr_midi_noteon(byte ch, byte num, byte vel) {
+void isr_midi_noteon(uint8_t ch, uint8_t num, uint8_t vel) {
 
   if (int_mode != MODE_MIDI) return;  // MIDI Mode Only
 
@@ -508,9 +529,9 @@ void isr_midi_noteon(byte ch, byte num, byte vel) {
       if (osc_mode_fixed) {
         if (use_midi_volume) {
           float volume = ((float)vel * (float)osc_mono_midi_volume[ch - 1] * (float)osc_mono_midi_expression[ch - 1]) / (float)2048383;
-          osc_mono_ontime_us[ch - 1] = (osc_mono_fixed_ontime_max_us[ch - 1] / (unsigned long)note_to_hz[num]) * volume;
+          osc_mono_ontime_us[ch - 1] = (osc_mono_fixed_ontime_max_us[ch - 1] / (uint32_t)note_to_hz[num]) * volume;
         } else {
-          osc_mono_ontime_us[ch - 1] = osc_mono_fixed_ontime_max_us[ch - 1] / (unsigned long)note_to_hz[num];
+          osc_mono_ontime_us[ch - 1] = osc_mono_fixed_ontime_max_us[ch - 1] / (uint32_t)note_to_hz[num];
         }
       } else {
         if (use_midi_volume) {
@@ -542,7 +563,7 @@ void isr_midi_noteon(byte ch, byte num, byte vel) {
 
 
 // Interrupt MIDI NoteOFF Tasks
-void isr_midi_noteoff(byte ch, byte num, byte vel) {
+void isr_midi_noteoff(uint8_t ch, uint8_t num, uint8_t vel) {
 
   if (int_mode != MODE_MIDI) { return; }  // MIDI Mode Only
 
@@ -565,7 +586,7 @@ void isr_midi_noteoff(byte ch, byte num, byte vel) {
 
 
 
-void isr_midi_controlchange(byte ch, byte num, byte val) {
+void isr_midi_controlchange(uint8_t ch, uint8_t num, uint8_t val) {
 
   if (int_mode != MODE_MIDI) return;  // MIDI Mode Only
 
