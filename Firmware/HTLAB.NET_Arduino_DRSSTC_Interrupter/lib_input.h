@@ -20,6 +20,6 @@ extern volatile bool gpio_push_2;
 
 void input_init();
 void input_task();
-byte menu_select();
+uint8_t menu_select(uint8_t mode_selector);
 
 #endif

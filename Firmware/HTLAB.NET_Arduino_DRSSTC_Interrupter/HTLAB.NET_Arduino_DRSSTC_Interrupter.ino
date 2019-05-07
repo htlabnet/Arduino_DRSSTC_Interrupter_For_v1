@@ -21,6 +21,8 @@
 
 //
 // ########## Pin Assignments ##########
+//  D0(RX)  - MIDI IN
+//  D1(TX)  - NONE
 //  D2  - PUSH1 (Interrupt1)
 //  D3  - PUSH2 (Interrupt0)
 //  D4  - LCD (RS)
@@ -74,6 +76,9 @@ LiquidCrystal lcd(4, 5, 6, 7, 8, 9);
   ((MIDI_LIBRARY_VERSION_MAJOR == 4) && (MIDI_LIBRARY_VERSION_MINOR < 3))
   #error This version of MIDI library is not supported. Please use version 4.3 or later.
 #endif
+#if USE_MIDI
+  MIDI_CREATE_DEFAULT_INSTANCE();
+#endif
 
 // Use MIDIUSB Library (for Arduino Leonardo, Micro)
 #if USE_MIDIUSB && defined(USBCON) && defined(__AVR_ATmega32U4__)
@@ -81,17 +86,19 @@ LiquidCrystal lcd(4, 5, 6, 7, 8, 9);
   static const unsigned sUsbTransportBufferSize = 16;
   typedef midi::UsbTransport<sUsbTransportBufferSize> UsbTransport;
   UsbTransport sUsbTransport;
-  MIDI_CREATE_INSTANCE(UsbTransport, sUsbTransport, MIDI);
-#else
-  MIDI_CREATE_DEFAULT_INSTANCE();
+  MIDI_CREATE_INSTANCE(UsbTransport, sUsbTransport, USBMIDI);
 #endif
 
 
 // Global Variables
 volatile uint8_t int_mode = MODE_OSC;
-volatile uint8_t menu_read = MODE_OSC;
+volatile uint8_t menu_state = MODE_OSC;
 char lcd_line1[17];
 char lcd_line2[17];
+
+// Setting Variables
+volatile uint8_t mode_selector = DEFAULT_MODE_SELECTOR;
+volatile uint8_t midi_ch[2] = {DEFAULT_MIDI_CH1, DEFAULT_MIDI_CH2};
 
 // OSC Mode Variables
 volatile uint16_t osc_fq = 5;
@@ -129,13 +136,18 @@ void setup() {
   input_init();
   output_init();
 
+  // MIDI Tasks
+  midi_task();
+
   // LCD
-  lcd.begin(16,2);
-  lcd.setCursor(0,0);
-  lcd.print("HTLAB.NET DRSSTC");
-  lcd.setCursor(0,1);
-  lcd.print("Interrupter v1.0");
-  delay(3000);
+  #if USE_LCD
+    lcd.begin(16,2);
+    lcd.setCursor(0,0);
+    lcd.print("HTLAB.NET DRSSTC");
+    lcd.setCursor(0,1);
+    lcd.print("Interrupter v1.0");
+    delay(3000);
+  #endif
 
   // For Debug
   #if DEBUG_SERIAL
@@ -147,7 +159,7 @@ void setup() {
   #endif
 
   // Setting Mode
-  #if USE_SETTING_MODE
+  #if USE_SETTING_MODE && USE_LCD
     if(!(INVERT_PUSH1 ^ (bool)digitalRead(2))){
       char lcd_line[17];
       lcd.setCursor(0,0);
@@ -169,7 +181,6 @@ void setup() {
       delay(2000);
     } else if(!(INVERT_PUSH2 ^ (bool)digitalRead(3))){
       char lcd_line[17];
-      uint8_t midi_ch[2] = {1, 2};
       lcd.setCursor(0,0);
       lcd.print("[SETTING MODE 2]");
       while(INVERT_PUSH1 ^ (bool)digitalRead(2)) {
@@ -201,16 +212,26 @@ void setup() {
   #endif
 
   // Use MIDI Library
-  MIDI.setHandleNoteOn(isr_midi_noteon);
-  MIDI.setHandleNoteOff(isr_midi_noteoff);
-  MIDI.setHandleControlChange(isr_midi_controlchange);
-  MIDI.setHandleActiveSensing(isr_midi_activesensing);
-  MIDI.setHandleSystemReset(isr_midi_systemreset);
-  MIDI.begin(MIDI_CHANNEL_OMNI);
+  #if USE_MIDI
+    MIDI.setHandleNoteOn(isr_midi_noteon);
+    MIDI.setHandleNoteOff(isr_midi_noteoff);
+    MIDI.setHandleControlChange(isr_midi_controlchange);
+    MIDI.setHandleActiveSensing(isr_midi_activesensing);
+    MIDI.setHandleSystemReset(isr_midi_systemreset);
+    MIDI.begin(MIDI_CHANNEL_OMNI);
+  #endif
+  #if USE_MIDIUSB && defined(USBCON) && defined(__AVR_ATmega32U4__)
+    USBMIDI.setHandleNoteOn(isr_midi_noteon);
+    USBMIDI.setHandleNoteOff(isr_midi_noteoff);
+    USBMIDI.setHandleControlChange(isr_midi_controlchange);
+    USBMIDI.setHandleActiveSensing(isr_midi_activesensing);
+    USBMIDI.setHandleSystemReset(isr_midi_systemreset);
+    USBMIDI.begin(MIDI_CHANNEL_OMNI);
+  #endif
   #if DEBUG_SERIAL
     Serial.println("[INFO] MIDI Library Load Complete");
   #endif
-
+  
   // Oscillator Tasks
   osc_timer_init();
   #if DEBUG_SERIAL
@@ -218,7 +239,7 @@ void setup() {
   #endif
 
   // Mode Init Tasks
-  mode_init(menu_read);
+  mode_init(menu_state);
 
 }
 
@@ -228,10 +249,10 @@ void loop() {
 
   // Input Tasks
   input_task();
-  menu_read = menu_select();
-  if (int_mode != menu_read) {
-    mode_init(menu_read);
-    int_mode = menu_read;
+  menu_state = menu_select(mode_selector);
+  if (int_mode != menu_state) {
+    mode_init(menu_state);
+    int_mode = menu_state;
   }
 
   // OSC Tasks
@@ -292,7 +313,9 @@ void loop() {
   midi_task();
 
   // LCD
-  show_lcd(int_mode);
+  #if USE_LCD
+    show_lcd(int_mode);
+  #endif
 
   // MIDI Tasks
   midi_task();
@@ -303,7 +326,12 @@ void loop() {
 void midi_task() {
   // MIDI Tasks
   for (uint8_t i = 0; i < 200; i++) {
-    MIDI.read();
+    #if USE_MIDI
+      MIDI.read();
+    #endif
+    #if USE_MIDIUSB && defined(USBCON) && defined(__AVR_ATmega32U4__)
+      USBMIDI.read();
+    #endif
   }
 }
 

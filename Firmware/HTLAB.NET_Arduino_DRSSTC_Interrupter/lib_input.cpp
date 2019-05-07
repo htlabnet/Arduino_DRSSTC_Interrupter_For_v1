@@ -110,12 +110,12 @@ void input_task() {
 }
 
 
-byte menu_select() {
+uint8_t menu_select(uint8_t mode_selector) {
 
   // OSC Mode
   if (gpio_sw_1 && gpio_sw_2) {
     // Volume Mode Select
-    switch (adc_vr_4 >> INTERRUPTER_MODE_SELECTOR) {
+    switch (adc_vr_4 >> (mode_selector + 8)) {
       case 0:
         return MODE_OSC;
       case 1:

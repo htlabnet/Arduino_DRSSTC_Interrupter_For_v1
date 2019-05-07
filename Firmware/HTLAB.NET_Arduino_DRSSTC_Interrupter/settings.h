@@ -3,6 +3,9 @@
 
 // ########## Interrupter Settings ##########
 
+// Use 16*2 Character LCD Module
+#define USE_LCD true
+
 // Use Volume Input (DEFAULT = 0-1023)
 #define USE_VR1 true
 #define USE_VR2 true
@@ -33,10 +36,17 @@
 #define USE_SETTING_MODE true
 
 // Interrupter Mode Selector
-//  8 : 4-Mode [OSC, OSC_OneShot, HighPower_OSC, HighPower_OSC_OneShot]
-//  9 : 2-Mode [OSC, OSC_OneShot]
-// 10 : 1-Mode [OSC]
-#define INTERRUPTER_MODE_SELECTOR 8
+// 0 : 4-Mode [OSC, OSC_OneShot, HighPower_OSC, HighPower_OSC_OneShot]
+// 1 : 2-Mode [OSC, OSC_OneShot]
+// 2 : 1-Mode [OSC]
+#define DEFAULT_MODE_SELECTOR 0
+
+// Default MIDI Channel
+#define DEFAULT_MIDI_CH1 1
+#define DEFAULT_MIDI_CH2 2
+
+// Use MIDI (UART)
+#define USE_MIDI true
 
 // Use MIDIUSB Library
 #define USE_MIDIUSB true
