@@ -126,6 +126,7 @@ volatile uint16_t burst_offtime_count = 0;
 volatile bool use_midi_volume = USE_MIDI_VOLUME;
 //volatile bool osc_mode_omni = OSC_MODE_OMNI;
 volatile bool osc_mode_fixed = OSC_MODE_FIXED;
+volatile bool osc_mono_midi_on[2] = {false, false};
 volatile uint8_t osc_mono_midi_note[2] = {0, 0};
 volatile uint8_t osc_mono_midi_volume[2] = {64, 64};
 volatile uint8_t osc_mono_midi_expression[2] = {127, 127};
@@ -200,7 +201,7 @@ void setup() {
         #else
           mode_selector = (adc_vr_1_inv / 3 >> 7);
         #endif
-        sprintf(lcd_line, "%1u-MODE             ", (4 / (mode_selector + 1)));
+        sprintf(lcd_line, "%1u-MODE          ", (4 / (mode_selector + 1)));
         lcd.setCursor(0,1);
         lcd.print(lcd_line);
         // MIDI Tasks
@@ -275,7 +276,7 @@ void setup() {
   #if DEBUG_SERIAL
     Serial.println("[INFO] MIDI Library Load Complete");
   #endif
-  
+
   // Oscillator Tasks
   osc_timer_init();
   #if DEBUG_SERIAL
@@ -303,7 +304,7 @@ void loop() {
   }
 
   // OSC Tasks
-  switch (int_mode) {
+  switch (menu_state) {
     // OSC Mode
     case MODE_OSC:
       osc_fq = adc_vr_1 + 5;
@@ -354,6 +355,11 @@ void loop() {
         osc_timer_set(0, osc_per);
       }
       break;
+    // MIDI Mode
+    case MODE_MIDI:
+      osc_mono_ontime_us[0] = (adc_vr_1 >> 2) + 1;
+      osc_mono_ontime_us[1] = (adc_vr_2 >> 2) + 1;
+      break;
   }
 
   // MIDI Tasks
@@ -361,7 +367,7 @@ void loop() {
 
   // LCD
   #if USE_LCD
-    show_lcd(int_mode);
+    show_lcd(menu_state);
   #endif
 
   // MIDI Tasks
@@ -452,6 +458,8 @@ void mode_init(byte mode) {
     case MODE_MIDI:
       osc_timer_disable(0);
       osc_timer_disable(1);
+      osc_mono_midi_on[0] = false;
+      osc_mono_midi_on[1] = false;
       osc_timer_init();
   }
   #if DEBUG_SERIAL
@@ -497,7 +505,15 @@ void show_lcd(byte mode) {
     // MIDI Mode
     case MODE_MIDI:
       sprintf(lcd_line1, "MIDI MODE[%2u/%2u]", midi_ch[0], midi_ch[1]);
-      sprintf(lcd_line2, "                ");
+      if (osc_mono_midi_on[0] && osc_mono_midi_on[1]) {
+        sprintf(lcd_line2, "%3u:%3uu%3u:%3uu", osc_mono_midi_note[0], osc_mono_ontime_us[0], osc_mono_midi_note[1], osc_mono_ontime_us[1]);
+      } else if (!osc_mono_midi_on[0] && osc_mono_midi_on[1]) {
+        sprintf(lcd_line2, "   :%3uu%3u:%3uu", osc_mono_ontime_us[0], osc_mono_midi_note[1], osc_mono_ontime_us[1]);
+      } else if (osc_mono_midi_on[0] && !osc_mono_midi_on[1]) {
+        sprintf(lcd_line2, "%3u:%3uu   :%3uu", osc_mono_midi_note[0], osc_mono_ontime_us[0], osc_mono_ontime_us[1]);
+      } else if (!osc_mono_midi_on[0] && !osc_mono_midi_on[1]) {
+        sprintf(lcd_line2, "   :%3uu   :%3uu", osc_mono_ontime_us[0], osc_mono_ontime_us[1]);
+      }
       break;
 
     // MIDI Fixed Mode
@@ -539,7 +555,7 @@ void isr_sw2() {
 
 // Interrupt Tasks
 ISR (TIMER1_COMPA_vect) {
-  switch (int_mode) {
+  switch (menu_state) {
     // OSC Mode Main Timer
     case MODE_OSC:
       output_dual_pulse(osc_us);
@@ -564,7 +580,7 @@ ISR (TIMER1_COMPA_vect) {
 
 // Interrupt Tasks
 ISR (TIMER3_COMPA_vect) {
-  switch (int_mode) {
+  switch (menu_state) {
     // OSC Mode
     case MODE_OSC:
       break;
@@ -600,8 +616,28 @@ ISR (TIMER3_COMPA_vect) {
 // Interrupt MIDI NoteON Tasks
 void isr_midi_noteon(uint8_t ch, uint8_t num, uint8_t vel) {
 
-  if (int_mode != MODE_MIDI) return;  // MIDI Mode Only
+  if (menu_state != MODE_MIDI && menu_state != MODE_MIDI_FIXED) return;  // MIDI Mode Only
 
+  if (ch == midi_ch[0]) {
+    if (osc_mono_midi_note[0] == num) {
+      osc_timer_disable(0);
+      osc_mono_midi_on[0] = false;
+    }
+    osc_timer_enable(0, timer_period[num] - 1);
+    osc_mono_midi_note[0] = num;
+    osc_mono_midi_on[0] = true;
+  }
+  if (ch == midi_ch[1]) {
+    if (osc_mono_midi_note[1] == num) {
+      osc_timer_disable(1);
+      osc_mono_midi_on[1] = false;
+    }
+    osc_timer_enable(1, timer_period[num] - 1);
+    osc_mono_midi_note[1] = num;
+    osc_mono_midi_on[1] = true;
+  }
+
+/*
   if (ch == 1 || ch == 2) {
     if (osc_mono_midi_note[ch - 1] == num) {
       osc_timer_disable(ch - 1);
@@ -627,7 +663,8 @@ void isr_midi_noteon(uint8_t ch, uint8_t num, uint8_t vel) {
       
     }
   }
-  
+*/
+
   // For Debug
   #if DEBUG_SERIAL
     Serial.print("[MIDI] Note On - CH:");
@@ -646,12 +683,15 @@ void isr_midi_noteon(uint8_t ch, uint8_t num, uint8_t vel) {
 // Interrupt MIDI NoteOFF Tasks
 void isr_midi_noteoff(uint8_t ch, uint8_t num, uint8_t vel) {
 
-  if (int_mode != MODE_MIDI) { return; }  // MIDI Mode Only
+  if (menu_state != MODE_MIDI && menu_state != MODE_MIDI_FIXED) return;  // MIDI Mode Only
 
-  if (ch == 1 || ch == 2) {
-    if (osc_mono_midi_note[ch - 1] == num) {
-      osc_timer_disable(ch - 1);
-    }
+  if (ch == midi_ch[0]) {
+    osc_timer_disable(0);
+    osc_mono_midi_on[0] = false;
+  }
+  if (ch == midi_ch[1]) {
+    osc_timer_disable(1);
+    osc_mono_midi_on[1] = false;
   }
 
   // For Debug
@@ -669,7 +709,7 @@ void isr_midi_noteoff(uint8_t ch, uint8_t num, uint8_t vel) {
 
 void isr_midi_controlchange(uint8_t ch, uint8_t num, uint8_t val) {
 
-  if (int_mode != MODE_MIDI) return;  // MIDI Mode Only
+  if (menu_state != MODE_MIDI && menu_state != MODE_MIDI_FIXED) return;  // MIDI Mode Only
 
   switch(num) {
     case 7:   // CC#7   Channel Volume
@@ -682,6 +722,8 @@ void isr_midi_controlchange(uint8_t ch, uint8_t num, uint8_t val) {
     case 123: // CC#123 All Notes Off
       osc_timer_disable(0);
       osc_timer_disable(1);
+      osc_mono_midi_on[0] = false;
+      osc_mono_midi_on[1] = false;
       break;
     case 121: // CC#121 Reset All Controllers
       osc_mono_midi_volume[0] = 64;
@@ -711,7 +753,7 @@ void isr_midi_controlchange(uint8_t ch, uint8_t num, uint8_t val) {
 
 void isr_midi_activesensing() {
 
-  if (int_mode != MODE_MIDI) return;  // MIDI Mode Only
+  if (menu_state != MODE_MIDI && menu_state != MODE_MIDI_FIXED) return;  // MIDI Mode Only
 
   // For Debug
   #if DEBUG_SERIAL
@@ -722,10 +764,12 @@ void isr_midi_activesensing() {
 
 void isr_midi_systemreset() {
 
-  if (int_mode != MODE_MIDI) return;  // MIDI Mode Only
+  if (menu_state != MODE_MIDI && menu_state != MODE_MIDI_FIXED) return;  // MIDI Mode Only
 
   osc_timer_disable(0);
   osc_timer_disable(1);
+  osc_mono_midi_on[0] = false;
+  osc_mono_midi_on[1] = false;
   //osc_mode_omni = OSC_MODE_OMNI;
   osc_mono_midi_volume[0] = 64;
   osc_mono_midi_volume[1] = 64;
