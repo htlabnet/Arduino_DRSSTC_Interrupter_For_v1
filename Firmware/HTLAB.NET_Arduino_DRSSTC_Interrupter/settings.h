@@ -84,6 +84,7 @@
 #define MODE_OSC_HP_OS 8
 #define MODE_BURST 16
 #define MODE_MIDI 32
+#define MODE_MIDI_FIXED 64
 
 // Pin Number (Do not change the value)
 #define PIN_VR1 A0
@@ -94,5 +95,10 @@
 #define PIN_SW2 A5
 #define PIN_PUSH1 2 //Interrupt1
 #define PIN_PUSH2 3 //Interrupt0
+
+// EEPROM Address Map
+#define ADDR_MODE_SELECTOR 0
+#define ADDR_MIDI_CH1 32
+#define ADDR_MIDI_CH2 33
 
 #endif

@@ -89,6 +89,11 @@ LiquidCrystal lcd(4, 5, 6, 7, 8, 9);
   MIDI_CREATE_INSTANCE(UsbTransport, sUsbTransport, USBMIDI);
 #endif
 
+// Use Setting Mode
+#if USE_SETTING_MODE
+  #include <EEPROM.h>
+#endif
+
 
 // Global Variables
 volatile uint8_t int_mode = MODE_OSC;
@@ -146,7 +151,11 @@ void setup() {
     lcd.print("HTLAB.NET DRSSTC");
     lcd.setCursor(0,1);
     lcd.print("Interrupter v1.0");
-    delay(3000);
+    uint32_t wait_start = millis();
+    while(millis() < wait_start + 3000){
+      // MIDI Tasks
+      midi_task();
+    }
   #endif
 
   // For Debug
@@ -158,28 +167,57 @@ void setup() {
     #endif
   #endif
 
+  // Load Settings
+  #if USE_SETTING_MODE
+    if(EEPROM.read(ADDR_MODE_SELECTOR) >= 2) {
+      EEPROM.write(ADDR_MODE_SELECTOR, DEFAULT_MODE_SELECTOR);
+    } else {
+      mode_selector = EEPROM.read(ADDR_MODE_SELECTOR);
+    }
+    if(EEPROM.read(ADDR_MIDI_CH1) > 16 || EEPROM.read(ADDR_MIDI_CH1) == 0) {
+      EEPROM.write(ADDR_MIDI_CH1, DEFAULT_MIDI_CH1);
+    } else {
+      midi_ch[0] = EEPROM.read(ADDR_MIDI_CH1);
+    }
+    if(EEPROM.read(ADDR_MIDI_CH2) > 16 || EEPROM.read(ADDR_MIDI_CH2) == 0) {
+      EEPROM.write(ADDR_MIDI_CH2, DEFAULT_MIDI_CH2);
+    } else {
+      midi_ch[1] = EEPROM.read(ADDR_MIDI_CH2);
+    }
+  #endif
+
   // Setting Mode
   #if USE_SETTING_MODE && USE_LCD
-    if(!(INVERT_PUSH1 ^ (bool)digitalRead(2))){
+    if(!(INVERT_PUSH1 ^ (bool)digitalRead(2))) {
       char lcd_line[17];
       lcd.setCursor(0,0);
       lcd.print("[SETTING MODE 1]");
       while(INVERT_PUSH2 ^ (bool)digitalRead(3)) {
         // Read Inputs
         input_task();
-        
+        #if !INVERT_VR1
+          mode_selector = (adc_vr_1 / 3 >> 7);
+        #else
+          mode_selector = (adc_vr_1_inv / 3 >> 7);
+        #endif
+        sprintf(lcd_line, "%1u-MODE             ", (4 / (mode_selector + 1)));
         lcd.setCursor(0,1);
-        lcd.print("                ");
-        delay(1);
+        lcd.print(lcd_line);
+        // MIDI Tasks
+        midi_task();
       }
       // Save Settings
-      
+      EEPROM.update(ADDR_MODE_SELECTOR, mode_selector);
       lcd.setCursor(0,0);
       lcd.print("[ SETTING DONE ]");
       lcd.setCursor(0,1);
       lcd.print("                ");
-      delay(2000);
-    } else if(!(INVERT_PUSH2 ^ (bool)digitalRead(3))){
+      uint32_t wait_start = millis();
+      while(millis() < wait_start + 2000){
+        // MIDI Tasks
+        midi_task();
+      }
+    } else if(!(INVERT_PUSH2 ^ (bool)digitalRead(3))) {
       char lcd_line[17];
       lcd.setCursor(0,0);
       lcd.print("[SETTING MODE 2]");
@@ -199,15 +237,21 @@ void setup() {
         sprintf(lcd_line, "Ch%2u Ch%2u       ", midi_ch[0], midi_ch[1]);
         lcd.setCursor(0,1);
         lcd.print(lcd_line);
-        delay(1);
+        // MIDI Tasks
+        midi_task();
       }
       // Save Settings
-      
+      EEPROM.update(ADDR_MIDI_CH1, midi_ch[0]);
+      EEPROM.update(ADDR_MIDI_CH2, midi_ch[1]);
       lcd.setCursor(0,0);
       lcd.print("[ SETTING DONE ]");
       lcd.setCursor(0,1);
       lcd.print("                ");
-      delay(2000);
+      uint32_t wait_start = millis();
+      while(millis() < wait_start + 2000) {
+        // MIDI Tasks
+        midi_task();
+      }
     }
   #endif
 
@@ -237,6 +281,9 @@ void setup() {
   #if DEBUG_SERIAL
     Serial.println("[INFO] Oscillator Tasks Complete");
   #endif
+
+  // MIDI Tasks
+  midi_task();
 
   // Mode Init Tasks
   mode_init(menu_state);
@@ -449,7 +496,13 @@ void show_lcd(byte mode) {
 
     // MIDI Mode
     case MODE_MIDI:
-      sprintf(lcd_line1, "MIDI MODE       ");
+      sprintf(lcd_line1, "MIDI MODE[%2u/%2u]", midi_ch[0], midi_ch[1]);
+      sprintf(lcd_line2, "                ");
+      break;
+
+    // MIDI Fixed Mode
+    case MODE_MIDI_FIXED:
+      sprintf(lcd_line1, "MIDI FIX [%2u/%2u]", midi_ch[0], midi_ch[1]);
       sprintf(lcd_line2, "                ");
       break;
   }
