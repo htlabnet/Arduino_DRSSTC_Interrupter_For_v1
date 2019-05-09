@@ -4,7 +4,7 @@
 //    HTLAB.NET Arduino DRSSTC Interrupter
 //      https://htlab.net/electronics/teslacoil/
 //
-//    Copyright (C) 2017
+//    Copyright (C) 2017 - 2019
 //      Hideto Kikuchi / PJ (@pcjpnet) - http://pc-jp.net/
 //      Tsukuba Science Inc. - http://www.tsukuba-kagaku.co.jp/
 //
@@ -123,16 +123,16 @@ volatile uint16_t burst_ontime_count = 0;
 volatile uint16_t burst_offtime_count = 0; 
 
 // MIDI Mode Variables
-volatile bool use_midi_volume = USE_MIDI_VOLUME;
+//volatile bool use_midi_volume = USE_MIDI_VOLUME;
 //volatile bool osc_mode_omni = OSC_MODE_OMNI;
-volatile bool osc_mode_fixed = OSC_MODE_FIXED;
+//volatile bool osc_mode_fixed = OSC_MODE_FIXED;
 volatile bool osc_mono_midi_on[2] = {false, false};
 volatile uint8_t osc_mono_midi_note[2] = {0, 0};
 volatile uint8_t osc_mono_midi_volume[2] = {64, 64};
 volatile uint8_t osc_mono_midi_expression[2] = {127, 127};
 volatile uint16_t osc_mono_ontime_us[2] = {0, 0};
-volatile uint16_t osc_mono_ontime_max_us[2] = {OSC_ONTIME_US_1, OSC_ONTIME_US_2};
-volatile uint32_t osc_mono_fixed_ontime_max_us[2] = {OSC_FIXED_ONTIME_US_1, OSC_FIXED_ONTIME_US_2};
+//volatile uint16_t osc_mono_ontime_max_us[2] = {OSC_ONTIME_US_1, OSC_ONTIME_US_2};
+//volatile uint32_t osc_mono_fixed_ontime_max_us[2] = {OSC_FIXED_ONTIME_US_1, OSC_FIXED_ONTIME_US_2};
 
 
 // Arduino Setup Function
@@ -713,23 +713,32 @@ void isr_midi_controlchange(uint8_t ch, uint8_t num, uint8_t val) {
 
   switch(num) {
     case 7:   // CC#7   Channel Volume
-      osc_mono_midi_volume[ch - 1] = val;
+      if (ch == midi_ch[0]) {
+        osc_mono_midi_volume[0] = val;
+      }
+      if (ch == midi_ch[1]) {
+        osc_mono_midi_volume[1] = val;
+      }
       break;
     case 11:  // CC#11  Expression
-      osc_mono_midi_expression[ch - 1] = val;
-      break;
-    case 120: // CC#120 All Sound Off
-    case 123: // CC#123 All Notes Off
-      osc_timer_disable(0);
-      osc_timer_disable(1);
-      osc_mono_midi_on[0] = false;
-      osc_mono_midi_on[1] = false;
+      if (ch == midi_ch[0]) {
+        osc_mono_midi_expression[0] = val;
+      }
+      if (ch == midi_ch[1]) {
+        osc_mono_midi_expression[1] = val;
+      }
       break;
     case 121: // CC#121 Reset All Controllers
       osc_mono_midi_volume[0] = 64;
       osc_mono_midi_volume[1] = 64;
       osc_mono_midi_expression[0] = 127;
       osc_mono_midi_expression[0] = 127;
+    case 120: // CC#120 All Sound Off
+    case 123: // CC#123 All Notes Off
+      osc_timer_disable(0);
+      osc_timer_disable(1);
+      osc_mono_midi_on[0] = false;
+      osc_mono_midi_on[1] = false;
       break;
     case 124: // CC#124 Omni Mode Off
       //osc_mode_omni = false;

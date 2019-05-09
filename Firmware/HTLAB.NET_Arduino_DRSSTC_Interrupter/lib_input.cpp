@@ -136,6 +136,7 @@ uint8_t menu_select(uint8_t mode_selector) {
   }
   // MIDI Fixed Mode
   if (!gpio_sw_1 && !gpio_sw_2) {
-    return MODE_MIDI_FIXED;
+    return MODE_MIDI;
+    //return MODE_MIDI_FIXED;
   }
 }
