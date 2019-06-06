@@ -41,6 +41,9 @@
 // 2 : 1-Mode [OSC]
 #define DEFAULT_MODE_SELECTOR 0
 
+// Beep Active [0:False/1:True]
+#define DEFAULT_BEEP_ACTIVE 1
+
 // Default MIDI Channel
 #define DEFAULT_MIDI_CH1 1
 #define DEFAULT_MIDI_CH2 2
@@ -98,6 +101,7 @@
 
 // EEPROM Address Map
 #define ADDR_MODE_SELECTOR 0
+#define ADDR_BEEP_ACTIVE 16
 #define ADDR_MIDI_CH1 32
 #define ADDR_MIDI_CH2 33
 

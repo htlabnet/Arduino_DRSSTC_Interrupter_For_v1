@@ -33,8 +33,8 @@
 //  D9  - LCD (DB7)
 //  D10 - OUT1
 //  D11 - OUT2
-//  D12 - (Reserve:OUT3)
-//  D13 - (Reserve:OUT4)
+//  D12 - (Reserve)
+//  D13 - PIEZO SPEAKER
 //  A0  - VR1
 //  A1  - VR2
 //  A2  - VR3
@@ -102,6 +102,7 @@ char lcd_line1[17];
 char lcd_line2[17];
 
 // Setting Variables
+volatile bool beep_active = (bool)DEFAULT_BEEP_ACTIVE;
 volatile uint8_t mode_selector = DEFAULT_MODE_SELECTOR;
 volatile uint8_t midi_ch[2] = {DEFAULT_MIDI_CH1, DEFAULT_MIDI_CH2};
 
@@ -170,10 +171,15 @@ void setup() {
 
   // Load Settings
   #if USE_SETTING_MODE
-    if(EEPROM.read(ADDR_MODE_SELECTOR) >= 2) {
+    if(EEPROM.read(ADDR_MODE_SELECTOR) >= 3) {
       EEPROM.write(ADDR_MODE_SELECTOR, DEFAULT_MODE_SELECTOR);
     } else {
       mode_selector = EEPROM.read(ADDR_MODE_SELECTOR);
+    }
+    if(EEPROM.read(ADDR_BEEP_ACTIVE) >= 2) {
+      EEPROM.write(ADDR_BEEP_ACTIVE, DEFAULT_BEEP_ACTIVE);
+    } else {
+      beep_active = (bool)EEPROM.read(ADDR_BEEP_ACTIVE);
     }
     if(EEPROM.read(ADDR_MIDI_CH1) > 16 || EEPROM.read(ADDR_MIDI_CH1) == 0) {
       EEPROM.write(ADDR_MIDI_CH1, DEFAULT_MIDI_CH1);
@@ -198,10 +204,13 @@ void setup() {
         input_task();
         #if !INVERT_VR1
           mode_selector = (adc_vr_1 / 3 >> 7);
+          beep_active = (bool)(adc_vr_2_inv >> 9);
         #else
           mode_selector = (adc_vr_1_inv / 3 >> 7);
+          beep_active = (bool)(adc_vr_2 >> 9);
         #endif
-        sprintf(lcd_line, "%1u-MODE          ", (4 / (mode_selector + 1)));
+        char* beep_str[] = {"Fals", "True"};
+        sprintf(lcd_line, "%1u-MODE BEEP:%s", (4 / (mode_selector + 1)), beep_str[(uint8_t)beep_active]);
         lcd.setCursor(0,1);
         lcd.print(lcd_line);
         // MIDI Tasks
@@ -209,6 +218,7 @@ void setup() {
       }
       // Save Settings
       EEPROM.update(ADDR_MODE_SELECTOR, mode_selector);
+      EEPROM.update(ADDR_BEEP_ACTIVE, (uint8_t)beep_active);
       lcd.setCursor(0,0);
       lcd.print("[ SETTING DONE ]");
       lcd.setCursor(0,1);
@@ -391,8 +401,8 @@ void midi_task() {
 
 // MODE Init
 void mode_init(byte mode) {
-  detachInterrupt(1);
-  detachInterrupt(0);
+  detachInterrupt(1); // Pin2
+  detachInterrupt(0); // Pin3
   switch (mode) {
     // OSC Mode
     case MODE_OSC:
