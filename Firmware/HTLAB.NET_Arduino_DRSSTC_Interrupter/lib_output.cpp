@@ -8,6 +8,9 @@ void output_init() {
   pinMode(12, OUTPUT);
   pinMode(13, OUTPUT);
 
+  // LCD Backlight
+  digitalWrite(12, HIGH);
+
 }
 
 

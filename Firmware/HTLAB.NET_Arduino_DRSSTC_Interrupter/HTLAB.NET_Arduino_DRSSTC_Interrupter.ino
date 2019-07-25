@@ -33,7 +33,7 @@
 //  D9  - LCD (DB7)
 //  D10 - OUT1
 //  D11 - OUT2
-//  D12 - (Reserve)
+//  D12 - LCD Backlight
 //  D13 - PIEZO SPEAKER
 //  A0  - VR1
 //  A1  - VR2
