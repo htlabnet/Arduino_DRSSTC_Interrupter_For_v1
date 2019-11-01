@@ -48,6 +48,10 @@
 #define DEFAULT_MIDI_CH1 1
 #define DEFAULT_MIDI_CH2 2
 
+// Max Note Number
+#define MIDI_MAX_NOTE_NUM_CH1 84
+#define MIDI_MAX_NOTE_NUM_CH2 84
+
 // Use MIDI (UART)
 #define USE_MIDI true
 

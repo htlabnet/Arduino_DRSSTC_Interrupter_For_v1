@@ -628,20 +628,12 @@ void isr_midi_noteon(uint8_t ch, uint8_t num, uint8_t vel) {
 
   if (menu_state != MODE_MIDI && menu_state != MODE_MIDI_FIXED) return;  // MIDI Mode Only
 
-  if (ch == midi_ch[0]) {
-    if (osc_mono_midi_note[0] == num) {
-      osc_timer_disable(0);
-      osc_mono_midi_on[0] = false;
-    }
+  if (ch == midi_ch[0] && num <= MIDI_MAX_NOTE_NUM_CH1) {
     osc_timer_enable(0, timer_period[num] - 1);
     osc_mono_midi_note[0] = num;
     osc_mono_midi_on[0] = true;
   }
-  if (ch == midi_ch[1]) {
-    if (osc_mono_midi_note[1] == num) {
-      osc_timer_disable(1);
-      osc_mono_midi_on[1] = false;
-    }
+  if (ch == midi_ch[1] && num <= MIDI_MAX_NOTE_NUM_CH2) {
     osc_timer_enable(1, timer_period[num] - 1);
     osc_mono_midi_note[1] = num;
     osc_mono_midi_on[1] = true;
@@ -696,12 +688,16 @@ void isr_midi_noteoff(uint8_t ch, uint8_t num, uint8_t vel) {
   if (menu_state != MODE_MIDI && menu_state != MODE_MIDI_FIXED) return;  // MIDI Mode Only
 
   if (ch == midi_ch[0]) {
-    osc_timer_disable(0);
-    osc_mono_midi_on[0] = false;
+    if (osc_mono_midi_note[0] == num) {
+      osc_timer_disable(0);
+      osc_mono_midi_on[0] = false;
+    }
   }
   if (ch == midi_ch[1]) {
-    osc_timer_disable(1);
-    osc_mono_midi_on[1] = false;
+    if (osc_mono_midi_note[1] == num) {
+      osc_timer_disable(1);
+      osc_mono_midi_on[1] = false;
+    }
   }
 
   // For Debug
