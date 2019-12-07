@@ -126,14 +126,12 @@ volatile uint16_t burst_offtime_count = 0;
 // MIDI Mode Variables
 //volatile bool use_midi_volume = USE_MIDI_VOLUME;
 //volatile bool osc_mode_omni = OSC_MODE_OMNI;
-//volatile bool osc_mode_fixed = OSC_MODE_FIXED;
 volatile bool osc_mono_midi_on[2] = {false, false};
 volatile uint8_t osc_mono_midi_note[2] = {0, 0};
-volatile uint8_t osc_mono_midi_volume[2] = {64, 64};
-volatile uint8_t osc_mono_midi_expression[2] = {127, 127};
+//volatile uint8_t osc_mono_midi_volume[2] = {64, 64};
+//volatile uint8_t osc_mono_midi_expression[2] = {127, 127};
 volatile uint16_t osc_mono_ontime_us[2] = {0, 0};
-//volatile uint16_t osc_mono_ontime_max_us[2] = {OSC_ONTIME_US_1, OSC_ONTIME_US_2};
-//volatile uint32_t osc_mono_fixed_ontime_max_us[2] = {OSC_FIXED_ONTIME_US_1, OSC_FIXED_ONTIME_US_2};
+volatile uint16_t osc_mono_ontime_fixed_us[2] = {0, 0};
 
 
 // Arduino Setup Function
@@ -154,7 +152,7 @@ void setup() {
     lcd.setCursor(0,1);
     lcd.print("Interrupter v1.0");
     uint32_t wait_start = millis();
-    while(millis() < wait_start + 3000){
+    while(millis() < wait_start + 2000){
       // MIDI Tasks
       midi_task();
     }
@@ -370,6 +368,17 @@ void loop() {
       osc_mono_ontime_us[0] = (adc_vr_1 >> 2) + 1;
       osc_mono_ontime_us[1] = (adc_vr_2 >> 2) + 1;
       break;
+    // MIDI FIXED Mode
+    case MODE_MIDI_FIXED:
+      osc_mono_ontime_us[0] = (adc_vr_1 >> 2) + 1;
+      osc_mono_ontime_us[1] = (adc_vr_2 >> 2) + 1;
+      if (osc_mono_midi_on[0]){
+        osc_mono_ontime_fixed_us[0] = osc_mono_ontime_us[0] * ontime_fix_per(note_to_hz[osc_mono_midi_note[0]]) / 100;
+      }
+      if (osc_mono_midi_on[1]){
+        osc_mono_ontime_fixed_us[1] = osc_mono_ontime_us[1] * ontime_fix_per(note_to_hz[osc_mono_midi_note[1]]) / 100;
+      }
+      break;
   }
 
   // MIDI Tasks
@@ -465,12 +474,15 @@ void mode_init(byte mode) {
       osc_timer_enable(1, 249);
       break;
     // MIDI Mode
+    // MIDI FIXED Mode
     case MODE_MIDI:
+    case MODE_MIDI_FIXED:
       osc_timer_disable(0);
       osc_timer_disable(1);
       osc_mono_midi_on[0] = false;
       osc_mono_midi_on[1] = false;
       osc_timer_init();
+      break;
   }
   #if DEBUG_SERIAL
     Serial.print("[INFO] Change Mode : ");
@@ -515,27 +527,32 @@ void show_lcd(byte mode) {
     // MIDI Mode
     case MODE_MIDI:
       sprintf(lcd_line1, "MIDI MODE[%2u/%2u]", midi_ch[0], midi_ch[1]);
-      if (osc_mono_midi_on[0] && osc_mono_midi_on[1]) {
-        sprintf(lcd_line2, "%3u:%3uu%3u:%3uu", osc_mono_midi_note[0], osc_mono_ontime_us[0], osc_mono_midi_note[1], osc_mono_ontime_us[1]);
-      } else if (!osc_mono_midi_on[0] && osc_mono_midi_on[1]) {
-        sprintf(lcd_line2, "   :%3uu%3u:%3uu", osc_mono_ontime_us[0], osc_mono_midi_note[1], osc_mono_ontime_us[1]);
-      } else if (osc_mono_midi_on[0] && !osc_mono_midi_on[1]) {
-        sprintf(lcd_line2, "%3u:%3uu   :%3uu", osc_mono_midi_note[0], osc_mono_ontime_us[0], osc_mono_ontime_us[1]);
-      } else if (!osc_mono_midi_on[0] && !osc_mono_midi_on[1]) {
-        sprintf(lcd_line2, "   :%3uu   :%3uu", osc_mono_ontime_us[0], osc_mono_ontime_us[1]);
-      }
+      show_lcd_midi_status();
       break;
 
     // MIDI Fixed Mode
     case MODE_MIDI_FIXED:
-      sprintf(lcd_line1, "MIDI FIX [%2u/%2u]", midi_ch[0], midi_ch[1]);
-      sprintf(lcd_line2, "                ");
+      sprintf(lcd_line1, "F%2u:%3uu %2u:%3uu", midi_ch[0], osc_mono_ontime_fixed_us[0], midi_ch[1], osc_mono_ontime_fixed_us[1]);
+      show_lcd_midi_status();
       break;
   }
   lcd.setCursor(0,0);
   lcd.print(lcd_line1);
   lcd.setCursor(0,1);
   lcd.print(lcd_line2);
+}
+
+
+void show_lcd_midi_status() {
+  //if (osc_mono_midi_on[0] && osc_mono_midi_on[1]) {
+    sprintf(lcd_line2, "%3u:%3uu%3u:%3uu", osc_mono_midi_note[0], osc_mono_ontime_us[0], osc_mono_midi_note[1], osc_mono_ontime_us[1]);
+  //} else if (!osc_mono_midi_on[0] && osc_mono_midi_on[1]) {
+  //  sprintf(lcd_line2, "   :%3uu%3u:%3uu", osc_mono_ontime_us[0], osc_mono_midi_note[1], osc_mono_ontime_us[1]);
+  //} else if (osc_mono_midi_on[0] && !osc_mono_midi_on[1]) {
+  //  sprintf(lcd_line2, "%3u:%3uu   :%3uu", osc_mono_midi_note[0], osc_mono_ontime_us[0], osc_mono_ontime_us[1]);
+  //} else if (!osc_mono_midi_on[0] && !osc_mono_midi_on[1]) {
+  //  sprintf(lcd_line2, "   :%3uu   :%3uu", osc_mono_ontime_us[0], osc_mono_ontime_us[1]);
+  //}
 }
 
 
@@ -584,6 +601,10 @@ ISR (TIMER1_COMPA_vect) {
     case MODE_MIDI:
       output_single_pulse(0, osc_mono_ontime_us[0]);
       break;
+    // MIDI FIXED Mode
+    case MODE_MIDI_FIXED:
+      output_single_pulse(0, osc_mono_ontime_fixed_us[0]);
+      break;
   }
 }
 
@@ -619,6 +640,10 @@ ISR (TIMER3_COMPA_vect) {
     case MODE_MIDI:
       output_single_pulse(1, osc_mono_ontime_us[1]);
       break;
+    // MIDI FIXED Mode
+    case MODE_MIDI_FIXED:
+      output_single_pulse(1, osc_mono_ontime_fixed_us[1]);
+      break;
   }
 }
 
@@ -638,34 +663,6 @@ void isr_midi_noteon(uint8_t ch, uint8_t num, uint8_t vel) {
     osc_mono_midi_note[1] = num;
     osc_mono_midi_on[1] = true;
   }
-
-/*
-  if (ch == 1 || ch == 2) {
-    if (osc_mono_midi_note[ch - 1] == num) {
-      osc_timer_disable(ch - 1);
-    }
-    if (vel > 0){
-      if (osc_mode_fixed) {
-        if (use_midi_volume) {
-          float volume = ((float)vel * (float)osc_mono_midi_volume[ch - 1] * (float)osc_mono_midi_expression[ch - 1]) / (float)2048383;
-          osc_mono_ontime_us[ch - 1] = (osc_mono_fixed_ontime_max_us[ch - 1] / (uint32_t)note_to_hz[num]) * volume;
-        } else {
-          osc_mono_ontime_us[ch - 1] = osc_mono_fixed_ontime_max_us[ch - 1] / (uint32_t)note_to_hz[num];
-        }
-      } else {
-        if (use_midi_volume) {
-          float volume = ((float)vel * (float)osc_mono_midi_volume[ch - 1] * (float)osc_mono_midi_expression[ch - 1]) / (float)2048383;
-          osc_mono_ontime_us[ch - 1] = osc_mono_ontime_max_us[ch - 1] * volume;
-        } else {
-          osc_mono_ontime_us[ch - 1] = osc_mono_ontime_max_us[ch - 1];
-        }
-      }
-      osc_timer_enable(ch - 1, timer_period[num] - 1);
-      osc_mono_midi_note[ch - 1] = num;
-      
-    }
-  }
-*/
 
   // For Debug
   #if DEBUG_SERIAL
@@ -691,12 +688,18 @@ void isr_midi_noteoff(uint8_t ch, uint8_t num, uint8_t vel) {
     if (osc_mono_midi_note[0] == num) {
       osc_timer_disable(0);
       osc_mono_midi_on[0] = false;
+      if (menu_state == MODE_MIDI_FIXED) {
+        osc_mono_ontime_fixed_us[0] = 0;
+      }
     }
   }
   if (ch == midi_ch[1]) {
     if (osc_mono_midi_note[1] == num) {
       osc_timer_disable(1);
       osc_mono_midi_on[1] = false;
+      if (menu_state == MODE_MIDI_FIXED) {
+        osc_mono_ontime_fixed_us[1] = 0;
+      }
     }
   }
 
@@ -719,26 +722,26 @@ void isr_midi_controlchange(uint8_t ch, uint8_t num, uint8_t val) {
 
   switch(num) {
     case 7:   // CC#7   Channel Volume
-      if (ch == midi_ch[0]) {
-        osc_mono_midi_volume[0] = val;
-      }
-      if (ch == midi_ch[1]) {
-        osc_mono_midi_volume[1] = val;
-      }
+      //if (ch == midi_ch[0]) {
+        //osc_mono_midi_volume[0] = val;
+      //}
+      //if (ch == midi_ch[1]) {
+        //osc_mono_midi_volume[1] = val;
+      //}
       break;
     case 11:  // CC#11  Expression
-      if (ch == midi_ch[0]) {
-        osc_mono_midi_expression[0] = val;
-      }
-      if (ch == midi_ch[1]) {
-        osc_mono_midi_expression[1] = val;
-      }
+      //if (ch == midi_ch[0]) {
+        //osc_mono_midi_expression[0] = val;
+      //}
+      //if (ch == midi_ch[1]) {
+        //osc_mono_midi_expression[1] = val;
+      //}
       break;
     case 121: // CC#121 Reset All Controllers
-      osc_mono_midi_volume[0] = 64;
-      osc_mono_midi_volume[1] = 64;
-      osc_mono_midi_expression[0] = 127;
-      osc_mono_midi_expression[0] = 127;
+      //osc_mono_midi_volume[0] = 64;
+      //osc_mono_midi_volume[1] = 64;
+      //osc_mono_midi_expression[0] = 127;
+      //osc_mono_midi_expression[0] = 127;
     case 120: // CC#120 All Sound Off
     case 123: // CC#123 All Notes Off
       osc_timer_disable(0);
@@ -786,13 +789,19 @@ void isr_midi_systemreset() {
   osc_mono_midi_on[0] = false;
   osc_mono_midi_on[1] = false;
   //osc_mode_omni = OSC_MODE_OMNI;
-  osc_mono_midi_volume[0] = 64;
-  osc_mono_midi_volume[1] = 64;
-  osc_mono_midi_expression[0] = 127;
-  osc_mono_midi_expression[0] = 127;
+  //osc_mono_midi_volume[0] = 64;
+  //osc_mono_midi_volume[1] = 64;
+  //osc_mono_midi_expression[0] = 127;
+  //osc_mono_midi_expression[0] = 127;
 
   // For Debug
   #if DEBUG_SERIAL
     Serial.println("[MIDI] System Reset");
   #endif
+}
+
+
+// Hz to ON-Time Percent
+uint16_t ontime_fix_per(uint16_t hz) {
+  return (10000 / (160 + hz)) + 40;
 }

@@ -58,21 +58,6 @@
 // Use MIDIUSB Library
 #define USE_MIDIUSB true
 
-// Use MIDI Volume (CC#7 & CC#11 & Velocity)
-//#define USE_MIDI_VOLUME false
-
-// Fixed Mode
-//#define OSC_MODE_FIXED false
-
-// Max ON-time (us)
-//#define OSC_ONTIME_US_1 10
-//#define OSC_ONTIME_US_2 10
-
-// Max ON-time Per Sec for Fixed Mode (us)
-//#define OSC_FIXED_ONTIME_US_1 10000
-//#define OSC_FIXED_ONTIME_US_2 10000
-
-
 // ########## Settings Complete! ##########
 
 // 8 or 64
@@ -105,8 +90,8 @@
 
 // EEPROM Address Map
 #define ADDR_MODE_SELECTOR 0
-#define ADDR_BEEP_ACTIVE 16
-#define ADDR_MIDI_CH1 32
-#define ADDR_MIDI_CH2 33
+#define ADDR_BEEP_ACTIVE 1
+#define ADDR_MIDI_CH1 2
+#define ADDR_MIDI_CH2 3
 
 #endif
