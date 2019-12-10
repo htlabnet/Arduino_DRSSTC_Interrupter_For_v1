@@ -572,7 +572,7 @@ void isr_sw2() {
   output_single_pulse(1, oneshot_ch2_ontime);
   detachInterrupt(0);
   delayMicroseconds(16000);
-  #if !INVERT_PUSH1
+  #if !INVERT_PUSH2
     attachInterrupt(0, isr_sw2, FALLING);
   #else
     attachInterrupt(0, isr_sw2, RISING);
