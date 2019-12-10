@@ -15,14 +15,14 @@
 
 //
 // ########## Compatible Boards ##########
-//    - Arduino Leonardo (USB-MIDI is available)
 //    - Arduino Micro (USB-MIDI is available)
+//    - Arduino Leonardo (USB-MIDI is available)
 //
 
 //
 // ########## Pin Assignments ##########
 //  D0(RX)  - MIDI IN
-//  D1(TX)  - NONE
+//  D1(TX)  - (MIDI OUT)
 //  D2  - PUSH1 (Interrupt1)
 //  D3  - PUSH2 (Interrupt0)
 //  D4  - LCD (RS)
@@ -39,8 +39,8 @@
 //  A1  - VR2
 //  A2  - VR3
 //  A3  - VR4
-//  A4  - SW1
-//  A5  - SW2
+//  A4  - SW1 (MIDI)
+//  A5  - SW2 (MODE)
 //
 
 //
